@@ -1,9 +1,99 @@
-export default function PillarDetail({ onClose }) {
+import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import Sparkline from '../ui/Sparkline.jsx'
+import { PILLAR_CONFIGS } from './pillarConfigs.js'
+
+function SetsLogger({ date, onSave }) {
+  const [sets, setSets] = useState([{exercise:'',sets:3,reps:10,weight_kg:0}])
+  const save = async () => {
+    await fetch('/api/today-log',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:'sets',date,data:{sets}})})
+    onSave()
+  }
   return (
-    <div className="fixed inset-0 z-50 flex items-end" style={{background:'rgba(0,0,0,0.6)'}}>
-      <div className="w-full rounded-t-3xl p-6" style={{background:'var(--color-surface)'}}>
-        <button onClick={onClose} style={{color:'var(--color-muted)'}}>Close</button>
+    <div className="space-y-2 mt-3">
+      {sets.map((row,i) => (
+        <div key={i} className="flex gap-1">
+          <input placeholder="Exercise" value={row.exercise} onChange={e=>setSets(s=>s.map((r,j)=>j===i?{...r,exercise:e.target.value}:r))}
+            className="flex-1 px-2 py-1.5 rounded-lg text-xs outline-none"
+            style={{background:'#0d1117',color:'var(--color-text)',border:'1px solid #30363d'}} />
+          {['sets','reps','weight_kg'].map(field=>(
+            <input key={field} type="number" placeholder={field==='weight_kg'?'kg':field} value={row[field]}
+              onChange={e=>setSets(s=>s.map((r,j)=>j===i?{...r,[field]:parseFloat(e.target.value)}:r))}
+              className="w-14 px-2 py-1.5 rounded-lg text-xs outline-none text-center"
+              style={{background:'#0d1117',color:'var(--color-text)',border:'1px solid #30363d'}} />
+          ))}
+        </div>
+      ))}
+      <div className="flex gap-2">
+        <button onClick={()=>setSets(s=>[...s,{exercise:'',sets:3,reps:10,weight_kg:0}])} className="text-xs px-3 py-1.5 rounded-lg" style={{background:'#30363d',color:'var(--color-muted)'}}>+ Add set</button>
+        <button onClick={save} className="text-xs px-3 py-1.5 rounded-lg font-semibold" style={{background:'var(--color-accent)',color:'#0d1117'}}>Save</button>
       </div>
     </div>
+  )
+}
+
+export default function PillarDetail({ pillarId, data, onClose }) {
+  const [history, setHistory] = useState([])
+  const [showSets, setShowSets] = useState(false)
+  const cfg = PILLAR_CONFIGS.find(c=>c.id===pillarId)
+  const today = new Date().toISOString().slice(0,10)
+  useEffect(()=>{ if(pillarId) fetch(`/api/history?pillar=${pillarId}`).then(r=>r.json()).then(setHistory) },[pillarId])
+
+  return (
+    <AnimatePresence>
+      {pillarId && (
+        <>
+          <motion.div className="fixed inset-0 z-40" style={{background:'rgba(0,0,0,0.6)'}}
+            initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={onClose} />
+          <motion.div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl p-6 space-y-4 max-h-[80vh] overflow-y-auto"
+            style={{background:'var(--color-surface)'}}
+            initial={{y:'100%'}} animate={{y:0}} exit={{y:'100%'}}
+            transition={{type:'spring',stiffness:300,damping:30}}>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold">{cfg?.emoji} {cfg?.label}</h2>
+              <button onClick={onClose} className="text-xl" style={{color:'var(--color-muted)'}}>✕</button>
+            </div>
+            <div className="text-center py-2">
+              <p className="text-5xl font-bold" style={{color:cfg?.color}}>{data?.score??'—'}</p>
+              <p className="text-sm mt-1" style={{color:'var(--color-muted)'}}>Today</p>
+            </div>
+            {pillarId==='hrv' && data?.signal && (
+              <div className="rounded-xl p-3" style={{background:data.signal==='green'?'#10b98122':data.signal==='red'?'#ef444422':'#f59e0b22',border:`1px solid ${data.signal==='green'?'var(--color-accent)':data.signal==='red'?'var(--color-danger)':'var(--color-warning)'}`}}>
+                <p className="text-sm font-medium">{data.signal==='green'?'Ready to train hard':data.signal==='red'?'Push light today':'Train as planned'}{data.luteal_adjusted&&<span className="text-xs ml-1" style={{color:'var(--color-muted)'}}>(Luteal)</span>}</p>
+                <p className="text-xs mt-1" style={{color:'var(--color-muted)'}}>HRV: {data.hrv_ms}ms · Baseline: {data.baseline?.mean}ms</p>
+              </div>
+            )}
+            {pillarId==='sleep' && data?.stages && (
+              <div className="space-y-1.5">
+                {Object.entries(data.stages).map(([stage,hours])=>(
+                  <div key={stage}>
+                    <div className="flex justify-between text-xs mb-0.5" style={{color:'var(--color-muted)'}}><span className="capitalize">{stage}</span><span>{hours?.toFixed(1)}h</span></div>
+                    <div className="h-1.5 rounded-full" style={{background:'#30363d'}}>
+                      <div className="h-full rounded-full" style={{width:`${Math.min(100,(hours/(data.total_hours||8))*100)}%`,background:stage==='deep'?'#818cf8':stage==='rem'?'#f87171':'#10b981'}} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {pillarId==='strength' && (
+              <div className="space-y-2">
+                {(data?.workouts??[]).map((w,i)=>(
+                  <div key={i} className="rounded-xl p-3" style={{background:'#0d1117'}}>
+                    <p className="text-sm font-medium">{w.type||'Workout'}</p>
+                    <p className="text-xs mt-0.5" style={{color:'var(--color-muted)'}}>{w.duration_min}min · {w.calories} kcal</p>
+                  </div>
+                ))}
+                {!showSets ? <button onClick={()=>setShowSets(true)} className="text-sm font-medium" style={{color:'var(--color-accent)'}}>+ Log sets & reps</button>
+                  : <SetsLogger date={today} onSave={()=>setShowSets(false)} />}
+              </div>
+            )}
+            {history.length>1 && (
+              <div><p className="text-sm font-semibold mb-2" style={{color:'var(--color-muted)'}}>30 days</p>
+                <Sparkline data={history} color={cfg?.color||'var(--color-accent)'} /></div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   )
 }
