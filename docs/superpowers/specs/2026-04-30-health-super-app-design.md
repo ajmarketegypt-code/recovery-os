@@ -228,9 +228,10 @@ brief:{date}             → { headline, bullets, recommendation, generated_at }
 report:{week}            → { summary, win, gap, recommendation, trends }
 
 vision:budget:{month}    → { used_cents, cap_cents, call_count }
+ai:spend:{month}         → { total_cents, vision_cents, brief_cents, report_cents }
 
 push:subscription        → Web Push subscription object
-settings                 → { notification_times, workout_target, vision_cap, name }
+settings                 → { notification_times, workout_target, vision_cap, ai_monthly_cap_cents, name }
 hrv:baseline             → { value_ms, computed_at, sample_count }
 ```
 
@@ -246,7 +247,7 @@ All date keys use `YYYY-MM-DD`. Week keys use `YYYY-WW` (ISO week number). Month
 | `/api/health-ingest` | POST | Receives Health Auto Export payload, writes to KV |
 | `/api/brief` | GET | Returns today's brief (generates if stale) |
 | `/api/report` | GET | Returns this week's report (generates Sunday) |
-| `/api/vision` | POST | Receives meal image, checks cache, calls Claude Vision, returns macros |
+| `/api/vision` | POST | Receives meal image, calls Claude Vision, returns macros — checks aggregate AI spend cap before calling |
 | `/api/push/subscribe` | POST | Stores Web Push subscription |
 | `/api/push/send` | POST | Internal — sends push notification (called by cron) |
 | `/api/cron/morning` | GET | Vercel Cron (daily 7am) — generates morning brief + sends push |
@@ -261,10 +262,10 @@ All date keys use `YYYY-MM-DD`. Week keys use `YYYY-WW` (ISO week number). Month
 
 1. **Name screen** — "What's your name?" → stored in settings
 2. **Install to home screen prompt** — Push notifications only work on iOS when the PWA is installed to the home screen (iOS 16.4+). Before requesting push permission, the setup flow detects if the app is running in standalone mode. If not, it shows a clear instruction: "Tap the Share button → Add to Home Screen → reopen from your home screen." This step is gated — the user cannot proceed to notification setup until the app is running as a home screen app.
-3. **Health Auto Export guide** — step-by-step: install app, buy Premium Lifetime, configure REST endpoint URL (pre-filled with this instance's ingest URL), set hourly schedule
+3. **Health Auto Export guide** — step-by-step: install app, buy **Premium Annual ($6.99/year)**, configure REST endpoint URL (pre-filled with this instance's ingest URL), set hourly schedule. This step is shown only on Ahmed's instance. Julie's instance skips Watch setup entirely — all pillars use manual input until she chooses to subscribe independently.
 4. **Notification permission** — request push permission, show what notifications they'll get
 5. **Workout target** — "How many workouts per week?" (default: 4)
-6. **Vision budget** — "Monthly meal photo budget?" (default: $5)
+6. **Vision budget** — "Monthly meal photo budget?" (default: $2)
 7. **Done** — straight to Today screen. App works immediately with manual input while Watch sync activates in background.
 
 ---
@@ -273,16 +274,18 @@ All date keys use `YYYY-MM-DD`. Week keys use `YYYY-WW` (ISO week number). Month
 
 | Item | Cost | Frequency |
 |---|---|---|
-| Health Auto Export Premium | $24.99 × 2 | Once ever |
+| Health Auto Export Premium Annual (Ahmed only) | $6.99 | Per year |
 | Vercel (Hobby) | $0 | Per instance |
 | Vercel KV | $0 (free tier: 256MB) | Per instance |
-| Vercel Cron | $0 (Hobby: 2 crons) | Per instance |
-| Claude Haiku (morning brief) | ~$0.01/day | Daily |
-| Claude Sonnet (Vision) | ~$0.03/photo | Per meal photo, capped |
-| Claude Opus (weekly report) | ~$0.10/week | Weekly |
-| **Estimated monthly AI cost** | **~$3–$10** | Monthly |
+| Vercel Cron | $0 (Hobby) | Per instance |
+| Claude Haiku (morning brief × 30) | ~$0.05 | Monthly |
+| Claude Sonnet Vision (capped at $2/mo) | $0–$2.00 | Monthly |
+| Claude Opus (weekly report × 4) | ~$0.40–$0.60 | Monthly |
+| **Estimated monthly AI cost** | **~$1.50–$2.65** | Monthly |
 
-Vision cap (default $5/month) applies only to the Sonnet Vision calls. Brief and weekly report are billed to the same Anthropic account but are very cheap.
+**Hard AI cap: $3/month total** enforced server-side across all three models. Vision default cap is $2/month. If Opus + Haiku approach $1, the Vision cap automatically tightens. The server tracks aggregate spend in Vercel KV and rejects new AI calls once the monthly total is reached — user sees a clear message and manual fallback activates for all AI-powered features until next month.
+
+Julie's instance has no Watch sync (manual input only). Her AI costs are lower — no Watch data means briefings are shorter and Vision is her only meaningful cost driver.
 
 ---
 
