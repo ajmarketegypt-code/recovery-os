@@ -1,0 +1,78 @@
+// api/health-ingest.js
+import { kv } from '@vercel/kv'
+import { getHealthData, setHealthData, getHRVBaseline, setHRVBaseline, isoDate } from '../src/lib/kv.js'
+import { appendToBaseline } from '../src/lib/hrv.js'
+import { scoreSleep, scoreMovement, scoreStrength } from '../src/lib/scoring.js'
+
+const INGEST_SECRET = process.env.INGEST_SECRET
+
+// Lightweight hash for idempotency key
+async function hashKey(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
+  return Array.from(new Uint8Array(buf)).slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+export const config = { runtime: 'edge' }
+
+export default async function handler(req) {
+  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 })
+
+  const secret = req.headers.get('x-ingest-secret')
+  if (secret !== INGEST_SECRET) return new Response('Unauthorized', { status: 401 })
+
+  let body
+  try { body = await req.json() } catch { return new Response('Bad JSON', { status: 400 }) }
+
+  const { metrics = [], exportedAt } = body
+  if (!exportedAt) return new Response('Missing exportedAt', { status: 400 })
+
+  let processed = 0, skipped = 0
+
+  for (const metric of metrics) {
+    const { type, date, value, data } = metric
+    if (!type || !date) { skipped++; continue }
+
+    // Idempotency check
+    const idKey = `ingest:seen:${await hashKey(type + date + JSON.stringify(value ?? data) + exportedAt)}`
+    if (await kv.get(idKey)) { skipped++; continue }
+    await kv.set(idKey, 1, { ex: 7200 }) // 2h TTL
+
+    // Map HAE metric type → KV pillar
+    if (type === 'sleep' && data) {
+      const { total_hours, efficiency, stages } = data
+      const score = scoreSleep({ total_hours, efficiency, stages })
+      await setHealthData(date, 'sleep', { ...data, score, source: 'auto' })
+
+    } else if (type === 'hrv' && value != null) {
+      const existing = await getHealthData(date, 'hrv') ?? {}
+      await setHealthData(date, 'hrv', { ...existing, hrv_ms: value, source: 'auto' })
+
+      // Update rolling baseline
+      const baseline = await getHRVBaseline() ?? { samples: [], mean: null, n: 0 }
+      const updated = appendToBaseline(baseline, { date, value })
+      await setHRVBaseline(updated)
+
+    } else if (type === 'resting_hr' && value != null) {
+      const existing = await getHealthData(date, 'hrv') ?? {}
+      await setHealthData(date, 'hrv', { ...existing, resting_hr: value })
+
+    } else if (type === 'workout' && data) {
+      const existing = await getHealthData(date, 'strength') ?? { workouts: [], weekly_count: 0, score: 0, sets: [] }
+      const workouts = [...existing.workouts, data]
+      const settings = await kv.get('settings') ?? { workout_target: 4 }
+      const score = scoreStrength({ weekly_workouts: workouts.length, target: settings.workout_target })
+      await setHealthData(date, 'strength', { ...existing, workouts, weekly_count: workouts.length, score })
+
+    } else if (type === 'activity_rings' && data) {
+      const { move_pct, exercise_pct, stand_pct, steps } = data
+      const score = scoreMovement({ move_pct, exercise_pct, stand_pct })
+      await setHealthData(date, 'movement', { move_pct, exercise_pct, stand_pct, steps, score })
+    }
+
+    processed++
+  }
+
+  return new Response(JSON.stringify({ processed, skipped }), {
+    headers: { 'content-type': 'application/json' },
+  })
+}
