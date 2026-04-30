@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useHealth } from '../hooks/useHealth.js'
 import { PILLAR_CONFIGS } from '../components/pillars/pillarConfigs.js'
 import Pillar from '../components/pillars/Pillar.jsx'
@@ -40,7 +40,8 @@ function BriefCard({ brief }) {
 export default function Today() {
   const { data, brief } = useHealth()
   const [detail, setDetail] = useState(null)
-  const [tags, setTags] = useState(data?.tags ?? [])
+  const [tags, setTags] = useState([])
+  useEffect(() => { if (data?.tags) setTags(data.tags) }, [data?.tags])
   const [mood, setMood] = useState(null)
   const [feltEnergy, setFeltEnergy] = useState(null)
   const [weight, setWeight] = useState('')

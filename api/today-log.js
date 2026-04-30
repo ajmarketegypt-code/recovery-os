@@ -15,6 +15,24 @@ export default async function handler(req) {
     const cur=(await kv.get(`health:${date}:strength`))??{workouts:[],weekly_count:0,score:0,sets:[]}
     await kv.set(`health:${date}:strength`,{...cur,sets:data.sets},{ex})
   }
+  else if (type === 'nutrition_manual') {
+    const existing = (await kv.get(`health:${date}:nutrition`)) ??
+      { meals: [], totals: { protein_g: 0, carbs_g: 0, fat_g: 0, calories: 0 } }
+    const meal = {
+      id: Date.now(),
+      macros: data,
+      quality_score: data.quality_score ?? 50,
+      comment: data.name ?? 'Manual entry',
+      logged_at: new Date().toISOString(),
+    }
+    const totals = {
+      protein_g: existing.totals.protein_g + (data.protein_g ?? 0),
+      carbs_g:   existing.totals.carbs_g   + (data.carbs_g ?? 0),
+      fat_g:     existing.totals.fat_g     + (data.fat_g ?? 0),
+      calories:  existing.totals.calories  + (data.calories ?? 0),
+    }
+    await kv.set(`health:${date}:nutrition`, { meals: [...existing.meals, meal], totals }, { ex })
+  }
   else return new Response('Unknown type',{status:400})
   return new Response(JSON.stringify({ok:true}),{headers:{'content-type':'application/json'}})
 }

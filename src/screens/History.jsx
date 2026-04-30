@@ -26,7 +26,7 @@ export default function History() {
       </div>
       <div className="rounded-2xl p-4" style={{background:'var(--color-surface)'}}>
         <p className="text-sm font-semibold mb-3" style={{color:cfg?.color||'#a3e635'}}>{cfg?.emoji||'⚖️'} {cfg?.label||'Weight'} — 30 days</p>
-        <Sparkline data={histData} color={cfg?.color||'#a3e635'} />
+        <Sparkline data={histData} color={cfg?.color||'#a3e635'} valueKey={pillar==='weight'?'kg':'score'} />
       </div>
       {report && !report.error && report.summary && (
         <div className="rounded-2xl p-4 space-y-3" style={{background:'var(--color-surface)'}}>

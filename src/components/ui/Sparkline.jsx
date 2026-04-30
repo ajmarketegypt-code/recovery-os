@@ -1,5 +1,5 @@
-export default function Sparkline({ data, width=320, height=120, color='#10b981' }) {
-  const values = data.map(d=>d.score??null)
+export default function Sparkline({ data, width=320, height=120, color='#10b981', valueKey='score' }) {
+  const values = data.map(d=>d[valueKey]??null)
   const valid = values.filter(v=>v!=null)
   if (valid.length<2) return <div className="h-32 flex items-center justify-center text-sm" style={{color:'var(--color-muted)'}}>Not enough data yet</div>
   const padX=8, padY=8, innerW=width-padX*2, innerH=height-padY*2
