@@ -98,6 +98,7 @@ Each pillar renders as a ring on the home screen (0–100 score) and expands to 
 - Weekly frequency tracker (target: user-configured, default 4×/week)
 - Strength score: `min(100, (weekly_workouts / target_workouts) × 100)`
 - Manual entry: tap "Log workout" → type, duration, intensity (1-5)
+- **Sets/reps/weight logging:** After logging a workout, an optional "Log sets" screen allows entry of exercises with sets × reps × weight. Stored in the strength KV entry. Displayed in the detail view. Ahmed's Watch auto-detects workout start/end; sets are always manual for both users.
 
 ### 4. Movement
 **Auto from Watch.** Activity rings as primary signal.
@@ -114,14 +115,49 @@ energy = (sleep_score × 0.35) + (hrv_score × 0.35) + (movement_score × 0.30)
 - Explains: "Your energy today is 72 — driven by solid sleep (81) but slightly suppressed by low HRV (58)"
 - This is the single most actionable number — the app leads with it
 
+### 7. Behavior Tags *(daily, optional)*
+**Manual, low-friction.** A small chip-select row on the Today screen (appears after the 6 rings). User taps any that apply for yesterday/today:
+
+| Tag | Category |
+|---|---|
+| 🍷 Alcohol | Recovery inhibitor |
+| 🌙 Late meal (after 9pm) | Recovery inhibitor |
+| 😰 High stress day | Recovery inhibitor |
+| ✈️ Travel / disrupted routine | Context |
+| 😴 Poor sleep intent (slept late, alarm) | Context |
+
+Tags are stored in `health:{date}:tags` as an array. Fed as structured JSON into both the morning brief prompt and the weekly Opus report prompt. The weekly report surfaces correlations: "Your 3 lowest HRV days this week all followed alcohol or late meals."
+
+### 8. Mood & Felt Energy *(daily, optional)*
+**One tap.** On the Today screen, below the 6 rings:
+- **Mood:** 😞 😐 🙂 😄 — stored as 1–4
+- **Felt energy:** 1–5 tap (distinct from the calculated Energy pillar score)
+
+Stored in `health:{date}:subjective → { mood: 1-4, felt_energy: 1-5 }`. Used in weekly report to close the loop: "Your calculated energy was 74 this week but felt energy averaged 2.8 — your subjective perception lagged behind your metrics."
+
+### 9. Weight Log *(daily optional, weekly required)*
+**One-tap entry.** A weight field on the Today screen. Unit: kg (configurable to lbs in Settings). Daily entry is optional; app requests a weekly weigh-in every Monday morning with a push nudge.
+
+Stored in `health:{date}:weight → { kg: number, source: 'manual' }`. Trend shown on History tab (30-day and 90-day sparkline). Not factored into any pillar score — displayed as standalone context.
+
+### 10. Cycle Tracking *(Julie only)*
+**Critical for HRV correctness.** HRV drops naturally 3–5ms during the luteal phase (post-ovulation). Without tracking, Julie's HRV signal is wrong ~14 days/month — marking genuine recovery suppression as "Push light today" when her body is performing normally for her cycle phase.
+
+- **Setup:** Julie enters her last period start date and average cycle length (default 28 days) during first launch. Stored in settings.
+- **Correction:** During luteal phase (days 15–cycle_length), HRV baseline comparison applies a +4ms correction offset. The signal label is appended with "(Luteal)" to make it transparent: "Normal HRV (Luteal)"
+- **Re-entry:** Monthly push nudge on predicted period start day: "Period started? Tap to confirm and reset cycle." One-tap confirm or adjust date.
+- Stored in `settings → { cycle_length_days, last_period_start }` and `health:{month}:cycle → { period_starts: [...], confirmed: boolean[] }`
+
 ### 6. Nutrition
 **Manual with AI assist.** The only pillar requiring user action.
 - Tap camera → take meal photo → image compressed to max 800px client-side
 - Sent to Claude Sonnet Vision → returns estimated macros (protein/carbs/fat/calories) + quality score (1-10) + one-line comment
 - Result cached by image hash — same meal never re-analyzed
-- Monthly Vision budget (default: $5 cap, configurable in Settings)
+- Monthly Vision budget (default: $1.50 cap, configurable in Settings)
 - Usage bar shown in Settings, warning notification at 80%, hard stop at 100% with manual logging fallback
 - Daily nutrition summary: total calories, protein target hit (yes/no), quality average
+
+> **Note:** Sections 7–10 (Behavior Tags, Mood & Felt Energy, Weight Log, Cycle Tracking) are V1 features. They appear in the "More" area of the Today screen below the 6 pillar rings, not in separate tabs.
 
 ---
 
@@ -164,10 +200,10 @@ Generated Sunday evening. Full week of all 6 pillars fed into Opus. Returns:
 
 ### Navigation
 Four tabs, bottom bar:
-- **Today** — home screen, daily brief, 6 pillar rings
-- **History** — 30-day charts per pillar, weekly report
+- **Today** — home screen, daily brief, 6 pillar rings + behavior tags + mood/felt energy + weight log
+- **History** — 30-day charts per pillar + weight trend, weekly report
 - **Nutrition** — meal log, camera, daily macros summary
-- **Settings** — Vision budget, notification times, workout target, Health Auto Export setup guide
+- **Settings** — Vision budget, notification times, workout target, Health Auto Export setup guide, weight unit, cycle tracking (Julie only)
 
 ### Home Screen
 ```
@@ -218,20 +254,26 @@ Six pillar icons with scores. Tap any → full detail view with history chart.
 
 ```
 health:{date}:sleep      → { stages, total_hours, efficiency, score, source }
-health:{date}:hrv        → { hrv_ms, resting_hr, baseline_30d, signal, score }
-health:{date}:strength   → { workouts: [...], weekly_count, score }
+health:{date}:hrv        → { hrv_ms, resting_hr, baseline_30d, signal, score, luteal_adjusted }
+health:{date}:strength   → { workouts: [...], weekly_count, score, sets: [{exercise, sets, reps, weight_kg}] }
 health:{date}:movement   → { move_pct, exercise_pct, stand_pct, steps, score }
 health:{date}:energy     → { score, components: { sleep, hrv, movement } }
 health:{date}:nutrition  → { meals: [...], totals: { protein, carbs, fat, calories } }
+health:{date}:tags       → string[]   // e.g. ["alcohol", "late_meal"]
+health:{date}:subjective → { mood: 1-4, felt_energy: 1-5 }
+health:{date}:weight     → { kg: number, source: 'manual' }
+
+health:{month}:cycle     → { period_starts: string[], confirmed: boolean[] }
 
 brief:{date}             → { headline, bullets, recommendation, generated_at }
-report:{week}            → { summary, win, gap, recommendation, trends }
+report:{week}            → { summary, win, gap, recommendation, trends, correlations }
 
 vision:budget:{month}    → { used_cents, cap_cents, call_count }
 ai:spend:{month}         → { total_cents, vision_cents, brief_cents, report_cents }
 
 push:subscription        → Web Push subscription object
-settings                 → { notification_times, workout_target, vision_cap, ai_monthly_cap_cents, name }
+settings                 → { notification_times, workout_target, vision_cap, ai_monthly_cap_cents, name,
+                             weight_unit, cycle_length_days, last_period_start }
 hrv:baseline             → { value_ms, computed_at, sample_count }
 ```
 
@@ -279,13 +321,31 @@ All date keys use `YYYY-MM-DD`. Week keys use `YYYY-WW` (ISO week number). Month
 | Vercel KV | $0 (free tier: 256MB) | Per instance |
 | Vercel Cron | $0 (Hobby) | Per instance |
 | Claude Haiku (morning brief × 30) | ~$0.05 | Monthly |
-| Claude Sonnet Vision (capped at $2/mo) | $0–$2.00 | Monthly |
-| Claude Opus (weekly report × 4) | ~$0.40–$0.60 | Monthly |
-| **Estimated monthly AI cost** | **~$1.50–$2.65** | Monthly |
+| Claude Sonnet Vision (capped at $1.50/mo) | $0–$1.50 | Monthly |
+| Claude Opus (weekly report × 4) | ~$0.60–$1.20 | Monthly |
+| **Estimated monthly AI cost** | **~$0.70–$2.87** | Monthly |
 
-**Hard AI cap: $3/month total** enforced server-side across all three models. Vision default cap is $2/month. If Opus + Haiku approach $1, the Vision cap automatically tightens. The server tracks aggregate spend in Vercel KV and rejects new AI calls once the monthly total is reached — user sees a clear message and manual fallback activates for all AI-powered features until next month.
+**Hard AI cap: $3/month total** enforced server-side across all three models. Vision default cap is **$1.50/month** (tightened from $2 to leave headroom for Opus weekly reports). The server tracks aggregate spend in Vercel KV (`ai:spend:{month}`) and rejects new AI calls once the monthly total is reached — user sees a clear message and manual fallback activates for all AI-powered features until next month.
+
+Worst-case scenario (both users active, max Vision usage): $0.63 (brief) + $1.50 (vision) + $1.20 (opus weekly × 2 users × 4 weeks) = **$2.87** — fits under $3 cap with $0.13 headroom.
 
 Julie's instance has no Watch sync (manual input only). Her AI costs are lower — no Watch data means briefings are shorter and Vision is her only meaningful cost driver.
+
+---
+
+## V2 Deferred
+
+Features excluded from V1 to stay under cost cap and scope:
+
+| Feature | Reason deferred |
+|---|---|
+| Conversational coach (Sonnet, 5 Q/day) | Single largest cost driver — $4.50/mo alone, blows $3 cap |
+| Morning brief Haiku → Sonnet upgrade | Haiku with structured behavior-tag input is sufficient baseline |
+| Weekly experiments loop | Premature before brief/report baselines are validated |
+| Water intake tracker | High daily friction, low signal, not load-bearing in any pillar |
+| Fasting window tracker | Meal timing already encoded in nutrition entries |
+| 365-day longitudinal views | Needs 365 days of data to be meaningful; ship later |
+| AI-driven brief content selection | Premature optimization; validate fixed template first |
 
 ---
 
