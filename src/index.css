@@ -1,18 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-body {
-  background-color: #0d1117;
-  color: #ecfdf5;
-  font-family: Inter, system-ui, -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
+:root {
+  --color-bg: #0d1117; --color-surface: #161b22;
+  --color-accent: #10b981; --color-warning: #f59e0b;
+  --color-danger: #ef4444; --color-text: #f0f6fc; --color-muted: #8b949e;
 }
-
-.pb-safe {
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
-}
-
-.pt-safe {
-  padding-top: max(12px, env(safe-area-inset-top));
-}
+body { background:var(--color-bg); color:var(--color-text);
+  font-family:system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased; overscroll-behavior:none; }
