@@ -29,3 +29,11 @@ body {
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
   border-radius: 20px;
 }
+
+/* Bottom-sheet slide animation (replaces framer-motion) */
+@keyframes sheet-in {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.sheet { animation: sheet-in 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
+.sheet-out { animation: sheet-in 0.25s cubic-bezier(0.7, 0, 0.84, 0) reverse; }
