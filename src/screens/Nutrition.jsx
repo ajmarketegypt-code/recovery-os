@@ -30,13 +30,26 @@ function MacroBar({ label, value, max, color }) {
 
 export default function Nutrition() {
   const [nutrition, setNutrition] = useState(null)
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [manualMode, setManualMode] = useState(false)
   const [manual, setManual] = useState({name:'',calories:'',protein:''})
   const fileRef = useRef()
 
-  const fetchData = useCallback(() =>
-    fetch('/api/today').then(r=>r.json()).then(d=>setNutrition(d.nutrition)), [])
+  const fetchData = useCallback(async () => {
+    try {
+      const r = await fetch('/api/today')
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const d = await r.json()
+      setNutrition(d.nutrition)
+      setError(null)
+    } catch (e) {
+      setError(e.message || 'Failed to load')
+    } finally {
+      setLoaded(true)
+    }
+  }, [])
 
   useEffect(()=>{ fetchData() }, [fetchData])
   const { pullY, refreshing, threshold } = usePullToRefresh(fetchData)
@@ -70,8 +83,14 @@ export default function Nutrition() {
         <h1 className="text-3xl font-black tracking-tight">Nutrition</h1>
       </div>
 
+      {error && (
+        <div className="card p-3 text-xs" style={{color:'var(--color-danger)',borderColor:'#ef444444'}}>
+          Couldn't load nutrition data — pull to retry. ({error})
+        </div>
+      )}
+
       {/* macro summary */}
-      <div className="card p-4 space-y-3">
+      <div className={`card p-4 space-y-3 ${!loaded?'animate-pulse':''}`}>
         <div className="flex justify-between items-baseline">
           <p className="text-sm font-semibold" style={{color:'var(--color-muted)'}}>Calories</p>
           <p className="text-2xl font-black">{Math.round(totals.calories)}<span className="text-sm font-normal ml-1" style={{color:'var(--color-muted)'}}>kcal</span></p>

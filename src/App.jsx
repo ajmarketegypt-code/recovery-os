@@ -42,16 +42,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen pb-20">
-      <Suspense fallback={<Spinner />}>
-        {[...visited].map(t => {
-          const Screen = SCREEN[t]
-          return (
-            <div key={t} style={{ display: t === tab ? 'block' : 'none' }}>
+      {[...visited].map(t => {
+        const Screen = SCREEN[t]
+        const isActive = t === tab
+        return (
+          <div key={t} style={{ display: isActive ? 'block' : 'none' }}>
+            {/* Per-screen Suspense — loading one screen doesn't blank the others */}
+            <Suspense fallback={isActive ? <Spinner /> : null}>
               <Screen />
-            </div>
-          )
-        })}
-      </Suspense>
+            </Suspense>
+          </div>
+        )
+      })}
       <TabBar active={tab} onChange={switchTab} />
     </div>
   )
