@@ -1,6 +1,21 @@
 import { useState, useEffect } from 'react'
 const IS_JULIE = import.meta.env.VITE_USER_NAME === 'julie'
 
+function DevButton({ label, onClick, busy, tone='surface' }) {
+  const styles = {
+    surface: { background: 'var(--color-surface)', color: 'var(--color-text)', border: '1px solid var(--color-border)' },
+    accent:  { background: 'var(--color-accent)',  color: 'var(--color-bg)',   border: '1px solid var(--color-accent)' },
+    danger:  { background: '#ef444415',            color: 'var(--color-danger)', border: '1px solid #ef444444' },
+  }[tone]
+  return (
+    <button onClick={onClick} disabled={busy}
+      className="px-3 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
+      style={styles}>
+      {busy ? '…' : label}
+    </button>
+  )
+}
+
 function Section({ title, children }) {
   return (
     <div className="card p-4 space-y-3">
@@ -50,9 +65,20 @@ function Stepper({ value, min, max, onChange }) {
 
 export default function Settings() {
   const [s, setS] = useState(null)
+  const [busy, setBusy] = useState(null)
+  const [devMsg, setDevMsg] = useState(null)
   const save = async patch => {
     const updated = await fetch('/api/settings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(patch)}).then(r=>r.json())
     setS(updated)
+  }
+  const callDev = async (path, action) => {
+    setBusy(action); setDevMsg(null)
+    try {
+      const r = await fetch(path, { method: 'POST' })
+      const j = await r.json().catch(()=>({}))
+      setDevMsg(j.message || (j.ok ? `Done (${action})` : (j.reason || 'Failed')))
+    } catch (e) { setDevMsg('Network error: ' + e.message) }
+    finally { setBusy(null); setTimeout(()=>setDevMsg(null), 4000) }
   }
   useEffect(()=>{ fetch('/api/settings').then(r=>r.json()).then(setS) },[])
   if (!s) return <div className="flex items-center justify-center h-screen" style={{color:'var(--color-muted)'}}>Loading…</div>
@@ -119,6 +145,21 @@ export default function Settings() {
           </Row>
         </Section>
       )}
+
+      <Section title="Developer">
+        <p className="text-xs leading-relaxed" style={{color:'var(--color-muted)'}}>
+          Useful for testing without a connected Apple Watch.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <DevButton label="Load demo data" tone="accent" busy={busy==='seed'}
+            onClick={()=>callDev('/api/dev/seed', 'seed')} />
+          <DevButton label="Test push" busy={busy==='push'}
+            onClick={()=>callDev('/api/dev/test-push', 'push')} />
+          <DevButton label="Wipe all data" tone="danger" busy={busy==='wipe'}
+            onClick={()=>{ if (confirm('Delete all health data? Settings will stay.')) callDev('/api/dev/wipe', 'wipe') }} />
+        </div>
+        {devMsg && <p className="text-xs" style={{color:'var(--color-accent)'}}>{devMsg}</p>}
+      </Section>
 
       {!IS_JULIE && (
         <Section title="Apple Watch Setup">

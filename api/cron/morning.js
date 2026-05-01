@@ -8,7 +8,7 @@ export default async function handler(req) {
   if (brief?.headline) {
     await fetch(`${origin}/api/push/send`,{method:'POST',
       headers:{'content-type':'application/json','x-cron-secret':process.env.CRON_SECRET},
-      body:JSON.stringify({title:'Health OS',body:brief.headline,url:'/'})})
+      body:JSON.stringify({title:'Health',body:brief.headline,url:'/'})})
   }
   return new Response(JSON.stringify({ok:true,brief_generated:!!brief?.headline}),{headers:{'content-type':'application/json'}})
 }

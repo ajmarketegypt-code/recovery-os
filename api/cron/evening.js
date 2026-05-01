@@ -12,7 +12,7 @@ export default async function handler(req) {
     const origin = new URL(req.url).origin
     await fetch(`${origin}/api/push/send`,{method:'POST',
       headers:{'content-type':'application/json','x-cron-secret':process.env.CRON_SECRET},
-      body:JSON.stringify({title:'Health OS',body:'No workout logged yet today — still time!',url:'/'})})
+      body:JSON.stringify({title:'Health',body:'No workout logged yet today — still time!',url:'/'})})
     reminded = true
   }
   return new Response(JSON.stringify({ok:true,reminded}),{headers:{'content-type':'application/json'}})

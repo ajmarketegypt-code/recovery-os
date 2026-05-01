@@ -110,6 +110,11 @@ export default function Nutrition() {
 
       {/* meal list */}
       <div className="space-y-2">
+        {(!nutrition?.meals?.length) && (
+          <div className="card px-4 py-6 text-center text-xs" style={{color:'var(--color-muted)'}}>
+            No meals logged today
+          </div>
+        )}
         {(nutrition?.meals??[]).map((meal,i) => (
           <div key={meal.id||i} className="card px-4 py-3 flex justify-between items-center">
             <div>

@@ -51,7 +51,12 @@ export default function History() {
         <p className="text-sm font-semibold mb-3" style={{color:cfg?.color||'#a3e635'}}>
           {cfg?.emoji||'⚖️'} {cfg?.label||'Weight'} — 30 days
         </p>
-        <Sparkline data={histData} color={cfg?.color||'#a3e635'} valueKey={pillar==='weight'?'kg':'score'} />
+        {histData.length === 0
+          ? <div className="h-24 rounded-xl flex items-center justify-center text-xs"
+              style={{background:'rgba(255,255,255,0.03)',color:'var(--color-muted)'}}>
+              No data yet — log workouts or load demo data in Settings
+            </div>
+          : <Sparkline data={histData} color={cfg?.color||'#a3e635'} valueKey={pillar==='weight'?'kg':'score'} />}
       </div>
 
       {/* weekly report */}

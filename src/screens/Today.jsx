@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useHealth } from '../hooks/useHealth.js'
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
+import { useOnline } from '../hooks/useOnline.js'
 import PullIndicator from '../components/ui/PullIndicator.jsx'
+import StatusBanner from '../components/ui/StatusBanner.jsx'
 import { PILLAR_CONFIGS } from '../components/pillars/pillarConfigs.js'
 import Pillar from '../components/pillars/Pillar.jsx'
 import PillarDetail from '../components/pillars/PillarDetail.jsx'
@@ -40,8 +42,9 @@ function BriefCard({ brief }) {
 }
 
 export default function Today() {
-  const { data, brief, refresh } = useHealth()
+  const { data, brief, error, refresh } = useHealth()
   const { pullY, refreshing, threshold } = usePullToRefresh(refresh)
+  const online = useOnline()
   const [detail, setDetail] = useState(null)
   const [tags, setTags] = useState([])
   useEffect(() => { if (data?.tags) setTags(data.tags) }, [data?.tags])
@@ -55,6 +58,8 @@ export default function Today() {
     <div className="px-4 pt-14 pb-4 space-y-5 max-w-md mx-auto"
       style={{ transform: `translateY(${pullY * 0.5}px)`, transition: pullY === 0 ? 'transform 0.2s' : 'none' }}>
       <PullIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
+      <StatusBanner message={!online ? "You're offline" : (error ? "Couldn't reach the server" : null)}
+        tone={!online ? 'warning' : 'danger'} />
       <div className="space-y-0.5">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{color:'var(--color-accent)'}}>
           {DAYS[d.getDay()]} · {MONTHS[d.getMonth()]} {d.getDate()}
