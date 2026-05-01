@@ -46,6 +46,16 @@ function BriefCard({ brief }) {
       {brief.sub && (
         <p className="text-sm leading-snug" style={{ color:'var(--color-muted)' }}>{brief.sub}</p>
       )}
+      {brief.actions?.length > 0 && (
+        <div className="space-y-1.5 pt-1">
+          {brief.actions.map((a, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs leading-snug">
+              <span style={{ color: rc, fontSize: '14px', lineHeight: 1 }}>→</span>
+              <span style={{ color: 'var(--color-text)' }}>{a}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {hasMore && (
         <div className="flex items-center justify-between pt-1">
           <span className="text-[10px] uppercase tracking-wider" style={{ color:'var(--color-muted)' }}>
@@ -68,7 +78,7 @@ function BriefCard({ brief }) {
 }
 
 export default function Today({ active = true }) {
-  const { data, brief, weekly, error, refresh } = useHealth()
+  const { data, brief, weekly, error, refresh } = useHealth(active)
   const { pullY, refreshing, threshold } = usePullToRefresh(refresh, active)
   const online = useOnline()
   const [detail, setDetail] = useState(null)

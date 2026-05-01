@@ -50,6 +50,7 @@ Return JSON:
 {
   "headline": "max 6 words, sentence case",
   "sub": "one sentence, ≤15 words, plain English",
+  "actions": ["≤8 words, imperative", "≤8 words, imperative"],
   "bullets": ["≤12 words", "≤12 words"],
   "recommendation": "Train hard" | "Train as planned" | "Light only" | "Rest"
 }
@@ -58,7 +59,14 @@ Recommendation rules:
 - Drained + low HRV or sick → Rest
 - Drained + decent HRV → Light only
 - Feels good + good HRV → Train hard
-- Otherwise → Train as planned`,
+- Otherwise → Train as planned
+
+ACTIONS rules:
+- 1-2 small concrete things to do TODAY that improve recovery for tomorrow.
+- Imperative voice ('Drink 500ml water before noon', '10-min walk after lunch')
+- Match the recommendation: if Rest → recovery actions (sleep, hydration, walk). If Train hard → fueling/warmup actions.
+- Tiny, achievable, specific. Not 'eat better' but 'add 30g protein at breakfast'.
+- No vague advice ('listen to your body', 'be mindful'). Every action must be doable in <30 min.`,
     }],
   }
 }

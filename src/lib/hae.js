@@ -61,9 +61,15 @@ export function translateHAE(body, { exerciseGoal = 30, standGoal = 12, moveGoal
         if (p.rem    != null) slot.rem    = (slot.rem    || 0) + p.rem
         if (p.core   != null) slot.core   = (slot.core   || 0) + p.core
         if (p.inBed  != null && p.inBed  > 0) slot.inBed = (slot.inBed || 0) + p.inBed
-        // Compute inBed from sleepStart/End if not provided (HAE often sends 0)
-        if ((!slot.inBed || slot.inBed === 0) && p.sleepStart && p.sleepEnd) {
-          const span = (new Date(p.sleepEnd) - new Date(p.sleepStart)) / 3_600_000
+        // Capture actual Watch-detected sleep onset / wake times — these are what the user
+        // really did, not what they planned. Prefer earliest start + latest end for the day.
+        if (p.sleepStart) slot.sleepStart = !slot.sleepStart || p.sleepStart < slot.sleepStart ? p.sleepStart : slot.sleepStart
+        if (p.sleepEnd)   slot.sleepEnd   = !slot.sleepEnd   || p.sleepEnd   > slot.sleepEnd   ? p.sleepEnd   : slot.sleepEnd
+        if (p.inBedStart) slot.inBedStart = !slot.inBedStart || p.inBedStart < slot.inBedStart ? p.inBedStart : slot.inBedStart
+        if (p.inBedEnd)   slot.inBedEnd   = !slot.inBedEnd   || p.inBedEnd   > slot.inBedEnd   ? p.inBedEnd   : slot.inBedEnd
+        // Compute inBed from in-bed timestamps if not provided
+        if ((!slot.inBed || slot.inBed === 0) && p.inBedStart && p.inBedEnd) {
+          const span = (new Date(p.inBedEnd) - new Date(p.inBedStart)) / 3_600_000
           if (span > 0) slot.inBed = (slot.inBed || 0) + span
         }
       }
@@ -161,6 +167,11 @@ export function translateHAE(body, { exerciseGoal = 30, standGoal = 12, moveGoal
       }
       if (s.respiratory_rate != null) data.respiratory_rate = s.respiratory_rate
       if (s.spo2_avg != null) data.spo2_avg = s.spo2_avg
+      // Actual Watch-detected timestamps — keep raw ISO strings, format in UI
+      if (s.sleepStart) data.sleep_start = s.sleepStart
+      if (s.sleepEnd)   data.sleep_end   = s.sleepEnd
+      if (s.inBedStart) data.in_bed_start = s.inBedStart
+      if (s.inBedEnd)   data.in_bed_end   = s.inBedEnd
       metrics.push({ type: 'sleep', date, data })
     }
 

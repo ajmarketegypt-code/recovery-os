@@ -14,6 +14,56 @@ function MetricTile({ label, value, unit, hint }) {
   )
 }
 
+// Format ISO time string "2026-05-01 23:43:19 +0300" → "11:43 PM"
+function fmtTime(iso) {
+  if (!iso) return '—'
+  // HAE format: "YYYY-MM-DD HH:MM:SS ±HHMM"
+  const m = iso.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/)
+  if (!m) return iso
+  const h = parseInt(m[4], 10)
+  const min = m[5]
+  const period = h >= 12 ? 'PM' : 'AM'
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+  return `${h12}:${min} ${period}`
+}
+
+function SleepTimeline({ sleepStart, sleepEnd, inBedStart, inBedEnd, totalHours }) {
+  // Time-to-fall-asleep delay if both are present
+  let delay = null
+  if (inBedStart && sleepStart) {
+    const d = (new Date(sleepStart.replace(' ', 'T')) - new Date(inBedStart.replace(' ', 'T'))) / 60_000
+    if (d > 1) delay = Math.round(d)
+  }
+  return (
+    <div className="rounded-xl p-3" style={{background:'var(--color-bg)',border:'1px solid var(--color-border)'}}>
+      <div className="flex items-baseline justify-between mb-1.5">
+        <p className="text-[10px] uppercase tracking-wider" style={{color:'var(--color-muted)'}}>Actual sleep</p>
+        {totalHours && (
+          <p className="text-xs tabular-nums" style={{color:'var(--color-muted)'}}>{totalHours.toFixed(1)}h asleep</p>
+        )}
+      </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[9px] uppercase tracking-wider" style={{color:'var(--color-muted)'}}>Asleep</p>
+          <p className="text-base font-bold tabular-nums">{fmtTime(sleepStart)}</p>
+        </div>
+        <div className="flex-1 mx-3 h-px relative" style={{background:'var(--color-border)'}}>
+          <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 text-xs">→</span>
+        </div>
+        <div className="text-right">
+          <p className="text-[9px] uppercase tracking-wider" style={{color:'var(--color-muted)'}}>Woke</p>
+          <p className="text-base font-bold tabular-nums">{fmtTime(sleepEnd)}</p>
+        </div>
+      </div>
+      {delay && (
+        <p className="text-[10px] mt-2 pt-2 border-t" style={{color:'var(--color-muted)',borderColor:'var(--color-border)'}}>
+          Took {delay} min to fall asleep after getting in bed
+        </p>
+      )}
+    </div>
+  )
+}
+
 function SetsLogger({ date, onSave }) {
   const [sets, setSets] = useState([{exercise:'',sets:3,reps:10,weight_kg:0}])
   const save = async () => {
@@ -96,8 +146,16 @@ export default function PillarDetail({ pillarId, data, onClose }) {
             </div>
           </>
         )}
-        {pillarId==='sleep' && (data?.stages || data?.respiratory_rate != null) && (
+        {pillarId==='sleep' && (data?.stages || data?.respiratory_rate != null || data?.sleep_start) && (
           <>
+            {/* Actual Watch-detected sleep window */}
+            {(data.sleep_start || data.sleep_end) && (
+              <SleepTimeline
+                sleepStart={data.sleep_start} sleepEnd={data.sleep_end}
+                inBedStart={data.in_bed_start} inBedEnd={data.in_bed_end}
+                totalHours={data.total_hours}
+              />
+            )}
             {data.stages && (
               <div className="space-y-2">
                 {Object.entries(data.stages).map(([stage,hours])=>(

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-export function useHealth() {
+
+export function useHealth(active = true) {
   const [data, setData] = useState(null)
   const [brief, setBrief] = useState(null)
   const [weekly, setWeekly] = useState(null)
@@ -30,11 +31,14 @@ export function useHealth() {
   const fetchAll = useCallback(() => { fetchToday(); fetchBrief(); fetchWeekly() },
     [fetchToday, fetchBrief, fetchWeekly])
 
+  // Polling is gated on `active` — don't fire fetches or trigger re-renders
+  // for a tab the user isn't looking at. (One-shot fetch on first activation.)
   useEffect(() => {
+    if (!active) return
     fetchToday(); fetchBrief(); fetchWeekly()
     const id = setInterval(fetchAll, 60_000)
     return () => clearInterval(id)
-  }, [fetchToday, fetchBrief, fetchWeekly, fetchAll])
+  }, [active, fetchToday, fetchBrief, fetchWeekly, fetchAll])
 
   return { data, brief, weekly, loading, error, refresh: fetchAll }
 }
