@@ -5,10 +5,14 @@ export default async function handler(req) {
   if (req.method!=='POST') return new Response('Method Not Allowed',{status:405})
   const { type, date=isoDate(), data } = await req.json()
   const ex = 60*60*24*90
-  if (type==='tags') await kv.set(`health:${date}:tags`,data,{ex})
+  if (type==='tags') {
+    await kv.set(`health:${date}:tags`,data,{ex})
+    await kv.del(`brief:${date}`)  // brief depends on tags — regenerate
+  }
   else if (type==='subjective') {
     const cur=(await kv.get(`health:${date}:subjective`))??{}
     await kv.set(`health:${date}:subjective`,{...cur,...data},{ex})
+    await kv.del(`brief:${date}`)  // brief depends on feeling — regenerate
   }
   else if (type==='weight') await kv.set(`health:${date}:weight`,{kg:data.kg,source:'manual'},{ex})
   else if (type==='sets') {

@@ -2,31 +2,42 @@
 
 const JSON_SYSTEM = 'You are a personal health coach. Reply ONLY with valid JSON matching the schema provided. No markdown, no explanation.'
 
-export function buildBriefPrompt({ sleep, hrv, movement, energy, tags = [], name = 'Ahmed' }) {
+export function buildBriefPrompt({ sleep, hrv, movement, energy, subjective, tags = [], name = 'Ahmed' }) {
   const tagStr = tags.length ? tags.join(', ') : 'none'
   const hrvNote = hrv?.regime === 'establishing'
     ? 'HRV baseline still establishing (< 7 days data)'
     : `HRV: ${hrv?.hrv_ms ?? '?'}ms, signal: ${hrv?.signal ?? '?'}, vs baseline ${hrv?.baseline?.mean ?? '?'}ms`
 
+  // Map 1-5 feeling to a label so Claude knows it's subjective, not a "score"
+  const FEEL = { 1:'drained', 2:'off', 3:'OK', 4:'good', 5:'great' }
+  const feelingNote = subjective?.feeling != null
+    ? `User self-reports they feel: ${FEEL[subjective.feeling]} (${subjective.feeling}/5). TRUST THIS — if they feel drained but Watch metrics look fine, recommend rest. Subjective state matters more than HRV alone for training decisions.`
+    : 'No subjective check-in yet today.'
+
   return {
-    system: JSON_SYSTEM,
+    system: `You are ${name}'s personal health coach. They are doing body recomposition (lose fat, gain muscle simultaneously) targeting 4 workouts/week. Be direct, specific, and adapt training advice to their RECOVERY state (HRV + sleep + how they feel). Reply ONLY with valid JSON matching the schema. No markdown.`,
     messages: [{
       role: 'user',
-      content: `Generate ${name}'s morning health brief.
+      content: `Generate ${name}'s daily brief.
 
-Health data:
+OBJECTIVE METRICS:
 - Sleep: ${sleep?.total_hours ?? '?'}h, efficiency ${sleep?.efficiency ?? '?'}%, score ${sleep?.score ?? '?'}
 - ${hrvNote}
 - Movement score: ${movement?.score ?? '?'} (move ${movement?.move_pct ?? '?'}%, exercise ${movement?.exercise_pct ?? '?'}%, stand ${movement?.stand_pct ?? '?'}%)
 - Energy score: ${energy?.score ?? '?'}
-- Yesterday's behavior tags: ${tagStr}
+
+SUBJECTIVE:
+- ${feelingNote}
+- Behavior context: ${tagStr}${tags.includes('sick') ? ' — IF SICK, hard recommendation: REST.' : ''}
 
 Return JSON:
 {
-  "headline": "Recovery score: [N] — [one-line summary]",
-  "bullets": ["[sleep insight]", "[HRV/recovery insight]", "[energy driver]"],
-  "recommendation": "Train hard" | "Train as planned" | "Rest"
-}`,
+  "headline": "[recovery state] — [one-line summary tying objective + subjective]",
+  "bullets": ["[insight on biggest signal today]", "[recovery/HRV note]", "[specific action — what to do today]"],
+  "recommendation": "Train hard" | "Train as planned" | "Light only" | "Rest"
+}
+
+The recommendation must match BOTH the metrics AND how they feel. Drained + low HRV → Rest. Drained + good HRV → Light only. Good feeling + good HRV → Train hard or as planned.`,
     }],
   }
 }

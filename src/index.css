@@ -13,6 +13,15 @@
   --color-muted:   #64748b;
 }
 
+html, body {
+  /* Block double-tap zoom + iOS text-size-adjustment for native-app feel */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
 body {
   background: var(--color-bg);
   background-image: radial-gradient(ellipse 80% 40% at 50% -5%, rgba(16,185,129,0.07) 0%, transparent 100%);
@@ -21,6 +30,8 @@ body {
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
+/* Allow text selection in inputs so users can paste/edit values */
+input, textarea { -webkit-user-select: text; user-select: text; }
 
 /* Premium card — replaces the flat #30363d border look */
 .card {

@@ -15,9 +15,9 @@ export default async function handler(req) {
     if (cached?.generated_at?.startsWith(today)) {
       return new Response(JSON.stringify(cached),{headers:{'content-type':'application/json'}})
     }
-    const [sleep,hrv,movement,energy,tags] = await Promise.all([
+    const [sleep,hrv,movement,energy,tags,subjective] = await Promise.all([
       getHealthData(today,'sleep'), getHealthData(today,'hrv'), getHealthData(today,'movement'),
-      getHealthData(today,'energy'), getHealthData(today,'tags'),
+      getHealthData(today,'energy'), getHealthData(today,'tags'), getHealthData(today,'subjective'),
     ])
 
     // Cost guard: don't burn Claude tokens generating a brief about nothing.
@@ -33,7 +33,7 @@ export default async function handler(req) {
     const baselineStats = computeBaselineStats(baseline?.samples??[])
     const settings = await kv.get('settings')
     const { system, messages } = buildBriefPrompt({
-      sleep, movement, energy, tags:tags??[],
+      sleep, movement, energy, subjective, tags:tags??[],
       hrv:{...hrv, regime:baselineStats.regime, baseline:baselineStats},
       name: settings?.name || process.env.USER_NAME || 'Ahmed',
     })

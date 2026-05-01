@@ -35,7 +35,7 @@ export default async function handler() {
   // Fetch what we need in parallel
   const [
     sleepWeek, strengthWeek, movementWeek, daylightWeek, hrvWeek,
-    sleepMonth, strengthMonth, hrvMonth,
+    sleepMonth, strengthMonth, hrvMonth, weightMonth,
   ] = await Promise.all([
     Promise.all(week.map(d => kv.get(`health:${d}:sleep`))),
     Promise.all(week.map(d => kv.get(`health:${d}:strength`))),
@@ -45,6 +45,7 @@ export default async function handler() {
     Promise.all(month.map(d => kv.get(`health:${d}:sleep`))),
     Promise.all(month.map(d => kv.get(`health:${d}:strength`))),
     Promise.all(month.map(d => kv.get(`health:${d}:hrv`))),
+    Promise.all(month.map(d => kv.get(`health:${d}:weight`))),
   ])
 
   // Weekly progress (X / target)
@@ -75,6 +76,33 @@ export default async function handler() {
     else break
   }
 
+  // Weight rolling averages + weekly delta (recomp signal)
+  const weightSeries = weightMonth
+    .map((w, i) => ({ date: month[i], kg: w?.kg }))
+    .filter(p => p.kg != null)
+  const last7 = weightSeries.slice(-7).map(p => p.kg)
+  const prev7 = weightSeries.slice(-14, -7).map(p => p.kg)
+  const avg = arr => arr.length ? +(arr.reduce((a,b) => a+b, 0) / arr.length).toFixed(1) : null
+  const today_kg = weightSeries.length ? weightSeries[weightSeries.length - 1].kg : null
+  const avg7 = avg(last7), avgPrev = avg(prev7)
+  const week_delta_kg = (avg7 != null && avgPrev != null) ? +(avg7 - avgPrev).toFixed(2) : null
+
+  // Recomp pace classification (user is on body recomposition: target stable bodyweight)
+  let pace = null
+  if (week_delta_kg != null) {
+    const d = week_delta_kg
+    if (Math.abs(d) <= 0.2) pace = { label: 'Recomp pace', tone: 'good',
+      hint: 'Bodyweight stable — perfect for recomp if strength is climbing' }
+    else if (d > 0.2 && d <= 0.5) pace = { label: 'Slight surplus', tone: 'warning',
+      hint: 'Gaining a bit fast for recomp. Cut ~150 kcal/day.' }
+    else if (d > 0.5) pace = { label: 'Bulk pace', tone: 'danger',
+      hint: 'Adding weight too fast. Watch for fat gain.' }
+    else if (d < -0.2 && d >= -0.5) pace = { label: 'Slow cut', tone: 'good',
+      hint: 'Fine for fat loss while protecting muscle' }
+    else pace = { label: 'Cutting fast', tone: 'danger',
+      hint: 'Losing too quickly — you\'ll lose muscle. Eat more.' }
+  }
+
   return new Response(JSON.stringify({
     targets: {
       sleep_hours: sleepTarget,
@@ -96,6 +124,13 @@ export default async function handler() {
       workout_days: workoutStreakDays,
       workout_weeks: workoutWeekStreak,
       hrv_days: hrvStreak,
+    },
+    weight: {
+      today_kg,
+      avg7d: avg7,
+      week_delta_kg,
+      pace,
+      series: weightSeries.slice(-30),  // for the mini-chart
     },
   }), { headers: { 'content-type': 'application/json' } })
 }
