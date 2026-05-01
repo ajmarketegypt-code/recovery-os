@@ -37,32 +37,47 @@ export default async function handler(req) {
     const date = isoDate(d)
     const dayIdx = days - 1 - i  // 0 = today, 29 = oldest
 
-    // Sleep
+    // Sleep + enrichment (resp rate, SpO2)
     const total_hours = +rand(6.0, 8.4).toFixed(1)
     const efficiency = randInt(78, 95)
     const deep  = +(total_hours * rand(0.10, 0.18)).toFixed(2)
     const rem   = +(total_hours * rand(0.18, 0.25)).toFixed(2)
     const light = +(total_hours - deep - rem).toFixed(2)
     const stages = { deep, rem, light }
-    const sleep = { total_hours, efficiency, stages, source: 'demo' }
+    const sleep = {
+      total_hours, efficiency, stages, source: 'demo',
+      respiratory_rate: +rand(13, 17).toFixed(1),
+      spo2_avg: +rand(95.5, 98.5).toFixed(1),
+    }
     sleep.score = scoreSleep(sleep)
     writes.push(setHealthData(date, 'sleep', sleep))
 
-    // HRV
+    // HRV + recovery extras (walking HR, wrist temp delta)
     const hrv_ms = randInt(38, 58)
     const resting_hr = randInt(52, 64)
     samples.push({ date, value: hrv_ms })
-    writes.push(setHealthData(date, 'hrv', { hrv_ms, resting_hr, source: 'demo' }))
+    writes.push(setHealthData(date, 'hrv', {
+      hrv_ms, resting_hr, source: 'demo',
+      walking_hr: randInt(85, 110),
+      wrist_temp_delta: +rand(-0.4, 0.4).toFixed(2),
+    }))
 
-    // Movement
+    // Movement + fitness (VO2 Max — changes slowly, ~constant per user)
     const move_pct = randInt(70, 110)
     const exercise_pct = randInt(80, 130)
     const stand_pct = randInt(85, 105)
     writes.push(setHealthData(date, 'movement', {
       move_pct, exercise_pct, stand_pct,
       steps: randInt(7000, 13000),
+      vo2_max: +rand(42, 48).toFixed(1),
       score: scoreMovement({ move_pct, exercise_pct, stand_pct }),
     }))
+
+    // Daylight + mindful (own pillars)
+    writes.push(setHealthData(date, 'daylight', { minutes: randInt(20, 180) }))
+    if (Math.random() > 0.5) {
+      writes.push(setHealthData(date, 'mindful', { minutes: randInt(5, 25) }))
+    }
 
     // Strength (only on workout days)
     const reverseIdx = days - 1 - i  // older = higher

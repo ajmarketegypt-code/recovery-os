@@ -67,9 +67,26 @@ export default async function handler(req) {
       await setHealthData(date, 'strength', { ...existing, workouts, weekly_count: workouts.length, score })
 
     } else if (type === 'activity_rings' && data) {
+      const existing = await getHealthData(date, 'movement') ?? {}
       const { move_pct, exercise_pct, stand_pct, steps } = data
       const score = scoreMovement({ move_pct, exercise_pct, stand_pct })
-      await setHealthData(date, 'movement', { move_pct, exercise_pct, stand_pct, steps, score })
+      await setHealthData(date, 'movement', { ...existing, move_pct, exercise_pct, stand_pct, steps, score })
+
+    } else if (type === 'recovery_extra' && data) {
+      // Walking HR avg + wrist temperature deviation — enrich the HRV record
+      const existing = await getHealthData(date, 'hrv') ?? {}
+      await setHealthData(date, 'hrv', { ...existing, ...data })
+
+    } else if (type === 'fitness_extra' && data) {
+      // VO2 Max — enrich the movement record (changes slowly)
+      const existing = await getHealthData(date, 'movement') ?? {}
+      await setHealthData(date, 'movement', { ...existing, ...data })
+
+    } else if (type === 'daylight' && value != null) {
+      await setHealthData(date, 'daylight', { minutes: value })
+
+    } else if (type === 'mindful' && value != null) {
+      await setHealthData(date, 'mindful', { minutes: value })
     }
 
     processed++

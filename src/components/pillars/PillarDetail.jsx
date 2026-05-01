@@ -2,6 +2,18 @@ import { useEffect, useState } from 'react'
 import Sparkline from '../ui/Sparkline.jsx'
 import { PILLAR_CONFIGS } from './pillarConfigs.js'
 
+function MetricTile({ label, value, unit, hint }) {
+  return (
+    <div className="rounded-xl p-3" style={{background:'var(--color-bg)',border:'1px solid var(--color-border)'}}>
+      <p className="text-[10px] uppercase tracking-wider" style={{color:'var(--color-muted)'}}>{label}</p>
+      <p className="text-base font-bold mt-0.5">
+        {value}{unit && <span className="text-xs font-normal ml-1" style={{color:'var(--color-muted)'}}>{unit}</span>}
+      </p>
+      {hint && <p className="text-[10px] mt-0.5" style={{color:'var(--color-muted)'}}>{hint}</p>}
+    </div>
+  )
+}
+
 function SetsLogger({ date, onSave }) {
   const [sets, setSets] = useState([{exercise:'',sets:3,reps:10,weight_kg:0}])
   const save = async () => {
@@ -68,21 +80,51 @@ export default function PillarDetail({ pillarId, data, onClose }) {
           <p className="text-sm mt-1" style={{color:'var(--color-muted)'}}>Today</p>
         </div>
         {pillarId==='hrv' && data?.signal && (
-          <div className="rounded-xl p-3" style={{background:data.signal==='green'?'#10b98122':data.signal==='red'?'#ef444422':'#f59e0b22',border:`1px solid ${data.signal==='green'?'var(--color-accent)':data.signal==='red'?'var(--color-danger)':'var(--color-warning)'}`}}>
-            <p className="text-sm font-medium">{data.signal==='green'?'Ready to train hard':data.signal==='red'?'Push light today':'Train as planned'}{data.luteal_adjusted&&<span className="text-xs ml-1" style={{color:'var(--color-muted)'}}>(Luteal)</span>}</p>
-            <p className="text-xs mt-1" style={{color:'var(--color-muted)'}}>HRV: {data.hrv_ms}ms · Baseline: {data.baseline?.mean}ms</p>
-          </div>
+          <>
+            <div className="rounded-xl p-3" style={{background:data.signal==='green'?'#10b98122':data.signal==='red'?'#ef444422':'#f59e0b22',border:`1px solid ${data.signal==='green'?'var(--color-accent)':data.signal==='red'?'var(--color-danger)':'var(--color-warning)'}`}}>
+              <p className="text-sm font-medium">{data.signal==='green'?'Ready to train hard':data.signal==='red'?'Push light today':'Train as planned'}{data.luteal_adjusted&&<span className="text-xs ml-1" style={{color:'var(--color-muted)'}}>(Luteal)</span>}</p>
+              <p className="text-xs mt-1" style={{color:'var(--color-muted)'}}>HRV: {data.hrv_ms}ms · Baseline: {data.baseline?.mean}ms</p>
+            </div>
+            {/* Recovery extras grid */}
+            <div className="grid grid-cols-2 gap-2">
+              {data.resting_hr != null && <MetricTile label="Resting HR" value={data.resting_hr} unit="bpm" />}
+              {data.walking_hr != null && <MetricTile label="Walking HR" value={data.walking_hr} unit="bpm" />}
+              {data.wrist_temp_delta != null && (
+                <MetricTile label="Wrist temp" value={(data.wrist_temp_delta>0?'+':'')+data.wrist_temp_delta} unit="°C"
+                  hint={Math.abs(data.wrist_temp_delta) > 0.3 ? 'Above baseline' : 'Normal'} />
+              )}
+            </div>
+          </>
         )}
-        {pillarId==='sleep' && data?.stages && (
-          <div className="space-y-2">
-            {Object.entries(data.stages).map(([stage,hours])=>(
-              <div key={stage}>
-                <div className="flex justify-between text-xs mb-1" style={{color:'var(--color-muted)'}}><span className="capitalize">{stage}</span><span>{hours?.toFixed(1)}h</span></div>
-                <div className="h-1.5 rounded-full" style={{background:'rgba(255,255,255,0.08)'}}>
-                  <div className="h-full rounded-full" style={{width:`${Math.min(100,(hours/(data.total_hours||8))*100)}%`,background:stage==='deep'?'#818cf8':stage==='rem'?'#f87171':'#10b981'}} />
-                </div>
+        {pillarId==='sleep' && (data?.stages || data?.respiratory_rate != null) && (
+          <>
+            {data.stages && (
+              <div className="space-y-2">
+                {Object.entries(data.stages).map(([stage,hours])=>(
+                  <div key={stage}>
+                    <div className="flex justify-between text-xs mb-1" style={{color:'var(--color-muted)'}}><span className="capitalize">{stage}</span><span>{hours?.toFixed(1)}h</span></div>
+                    <div className="h-1.5 rounded-full" style={{background:'rgba(255,255,255,0.08)'}}>
+                      <div className="h-full rounded-full" style={{width:`${Math.min(100,(hours/(data.total_hours||8))*100)}%`,background:stage==='deep'?'#818cf8':stage==='rem'?'#f87171':'#10b981'}} />
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+            {/* Sleep enrichment */}
+            {(data.respiratory_rate != null || data.spo2_avg != null) && (
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                {data.respiratory_rate != null && <MetricTile label="Resp rate" value={data.respiratory_rate} unit="br/min" />}
+                {data.spo2_avg != null && <MetricTile label="Blood O₂" value={data.spo2_avg} unit="%"
+                  hint={data.spo2_avg < 95 ? 'Below normal' : 'Healthy'} />}
+              </div>
+            )}
+          </>
+        )}
+        {pillarId==='movement' && (data?.steps != null || data?.vo2_max != null) && (
+          <div className="grid grid-cols-2 gap-2">
+            {data.steps != null && <MetricTile label="Steps" value={data.steps.toLocaleString()} />}
+            {data.vo2_max != null && <MetricTile label="VO₂ Max" value={data.vo2_max} unit="ml/kg/min"
+              hint={data.vo2_max >= 45 ? 'Excellent' : data.vo2_max >= 35 ? 'Good' : 'Fair'} />}
           </div>
         )}
         {pillarId==='strength' && (

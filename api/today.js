@@ -7,7 +7,7 @@ export const config = { runtime: 'edge' }
 
 export default async function handler(req) {
   const date = new URL(req.url).searchParams.get('date') || isoDate()
-  const pillars = ['sleep','hrv','strength','movement','energy','nutrition','tags','subjective','weight']
+  const pillars = ['sleep','hrv','strength','movement','energy','nutrition','tags','subjective','weight','daylight','mindful']
 
   const [results, baseline, settings] = await Promise.all([
     Promise.all(pillars.map(p => kv.get(`health:${date}:${p}`))),

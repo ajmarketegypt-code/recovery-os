@@ -81,6 +81,30 @@ export default function Today() {
       <div className="grid grid-cols-3 gap-3">
         {PILLAR_CONFIGS.map(cfg => <Pillar key={cfg.id} config={cfg} data={data?.[cfg.id]} onTap={setDetail} />)}
       </div>
+
+      {/* Lifestyle context chips: daylight + mindful */}
+      {(data?.daylight?.minutes != null || data?.mindful?.minutes != null) && (
+        <div className="flex gap-2">
+          {data?.daylight?.minutes != null && (
+            <div className="card flex-1 px-3 py-2.5 flex items-center gap-2.5">
+              <span className="text-base">☀️</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-wider" style={{color:'var(--color-muted)'}}>Daylight</p>
+                <p className="text-sm font-bold leading-tight">{data.daylight.minutes}<span className="text-xs font-normal ml-0.5" style={{color:'var(--color-muted)'}}>min</span></p>
+              </div>
+            </div>
+          )}
+          {data?.mindful?.minutes != null && (
+            <div className="card flex-1 px-3 py-2.5 flex items-center gap-2.5">
+              <span className="text-base">🧘</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-wider" style={{color:'var(--color-muted)'}}>Mindful</p>
+                <p className="text-sm font-bold leading-tight">{data.mindful.minutes}<span className="text-xs font-normal ml-0.5" style={{color:'var(--color-muted)'}}>min</span></p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       <section className="space-y-3 pt-1">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{color:'var(--color-muted)'}}>Log Today</p>
         <ChipSelect options={TAG_OPTIONS} selected={tags} onChange={next=>{setTags(next);log('tags',next)}} />
