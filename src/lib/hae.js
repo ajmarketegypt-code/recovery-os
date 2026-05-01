@@ -53,11 +53,19 @@ export function translateHAE(body, { exerciseGoal = 30, standGoal = 12, moveGoal
     } else if (name === 'sleep_analysis') {
       for (const p of points) {
         const slot = ensure(dateOnly(p.date)).sleep
-        if (p.asleep != null) slot.asleep = (slot.asleep || 0) + p.asleep
+        // HAE sometimes sends asleep:0 inBed:0 with real data in totalSleep + stages —
+        // prefer the most reliable source (totalSleep > sum of stages > asleep)
+        if (p.totalSleep != null && p.totalSleep > 0) slot.totalSleep = (slot.totalSleep || 0) + p.totalSleep
+        if (p.asleep     != null && p.asleep     > 0) slot.asleep     = (slot.asleep     || 0) + p.asleep
         if (p.deep   != null) slot.deep   = (slot.deep   || 0) + p.deep
         if (p.rem    != null) slot.rem    = (slot.rem    || 0) + p.rem
         if (p.core   != null) slot.core   = (slot.core   || 0) + p.core
-        if (p.inBed  != null) slot.inBed  = (slot.inBed  || 0) + p.inBed
+        if (p.inBed  != null && p.inBed  > 0) slot.inBed = (slot.inBed || 0) + p.inBed
+        // Compute inBed from sleepStart/End if not provided (HAE often sends 0)
+        if ((!slot.inBed || slot.inBed === 0) && p.sleepStart && p.sleepEnd) {
+          const span = (new Date(p.sleepEnd) - new Date(p.sleepStart)) / 3_600_000
+          if (span > 0) slot.inBed = (slot.inBed || 0) + span
+        }
       }
     } else if (name === 'respiratory_rate') {
       // Group points per date and average
@@ -86,7 +94,13 @@ export function translateHAE(body, { exerciseGoal = 30, standGoal = 12, moveGoal
     } else if (name === 'apple_stand_hour' || name === 'apple_stand_time') {
       for (const p of points) { const v = num(p); if (v != null) ensure(dateOnly(p.date)).rings.stand_pct = Math.round((v / standGoal) * 100) }
     } else if (name === 'active_energy') {
-      for (const p of points) { const v = num(p); if (v != null) ensure(dateOnly(p.date)).rings.move_pct = Math.round((v / moveGoal) * 100) }
+      // HAE sends kJ in metric regions, kcal in US — convert to kcal for consistency
+      const isKJ = (metric.units || '').toLowerCase() === 'kj'
+      for (const p of points) {
+        let v = num(p); if (v == null) continue
+        if (isKJ) v = v / 4.184  // kJ → kcal
+        ensure(dateOnly(p.date)).rings.move_pct = Math.round((v / moveGoal) * 100)
+      }
     } else if (name === 'step_count') {
       for (const p of points) { const v = num(p); if (v != null) ensure(dateOnly(p.date)).rings.steps = Math.round(v) }
 
@@ -114,9 +128,10 @@ export function translateHAE(body, { exerciseGoal = 30, standGoal = 12, moveGoal
       metrics.push({ type: 'recovery_extra', date, data: slot.recovery })
     }
 
-    // Sleep with optional enrichment
+    // Sleep with optional enrichment.
+    // Prefer totalSleep > asleep > sum of stages (HAE's data quality varies)
     const s = slot.sleep
-    const total_hours = s.asleep ?? ((s.deep || 0) + (s.rem || 0) + (s.core || 0))
+    const total_hours = s.totalSleep || s.asleep || ((s.deep || 0) + (s.rem || 0) + (s.core || 0))
     if (total_hours > 0 || s.respiratory_rate != null || s.spo2_avg != null) {
       const data = {}
       if (total_hours > 0) {
