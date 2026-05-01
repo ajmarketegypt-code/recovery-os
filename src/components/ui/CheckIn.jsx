@@ -9,11 +9,11 @@ const FEELINGS = [
 ]
 
 const TAG_OPTIONS = [
-  { id:'alcohol',           emoji:'🍷', label:'Alcohol' },
   { id:'late_meal',         emoji:'🌙', label:'Late meal' },
   { id:'high_stress',       emoji:'😰', label:'High stress' },
   { id:'travel',            emoji:'✈️', label:'Travel' },
   { id:'poor_sleep_intent', emoji:'😴', label:'Late night' },
+  { id:'long_sitting',      emoji:'🪑', label:'Long sitting' },
   { id:'sick',              emoji:'🤒', label:'Sick' },
 ]
 

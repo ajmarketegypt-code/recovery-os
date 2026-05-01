@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useHealth } from '../hooks/useHealth.js'
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
 import { useOnline } from '../hooks/useOnline.js'
@@ -7,6 +7,7 @@ import StatusBanner from '../components/ui/StatusBanner.jsx'
 import StreakStrip from '../components/ui/StreakStrip.jsx'
 import CheckIn from '../components/ui/CheckIn.jsx'
 import WeightCard from '../components/ui/WeightCard.jsx'
+import PrayerStrip from '../components/ui/PrayerStrip.jsx'
 import { PILLAR_CONFIGS } from '../components/pillars/pillarConfigs.js'
 import Pillar from '../components/pillars/Pillar.jsx'
 import PillarDetail from '../components/pillars/PillarDetail.jsx'
@@ -84,8 +85,28 @@ export default function Today({ active = true }) {
   const [detail, setDetail] = useState(null)
   const [tags, setTags] = useState([])
   const [feeling, setFeeling] = useState(null)
+  const [prayers, setPrayers] = useState(null)
   useEffect(() => { if (data?.tags) setTags(data.tags) }, [data?.tags])
   useEffect(() => { if (data?.subjective?.feeling != null) setFeeling(data.subjective.feeling) }, [data?.subjective?.feeling])
+
+  const fetchPrayers = useCallback(async () => {
+    try { const r = await fetch('/api/prayers'); if (r.ok) setPrayers(await r.json()) } catch (_) {}
+  }, [])
+  useEffect(() => { if (active) fetchPrayers() }, [active, fetchPrayers])
+
+  const togglePrayer = async (prayer) => {
+    // Optimistic update
+    setPrayers(p => p ? { ...p, completed: p.completed.includes(prayer)
+      ? p.completed.filter(x => x !== prayer)
+      : [...p.completed, prayer] } : p)
+    try {
+      const r = await fetch('/api/prayer-log', {
+        method:'POST', headers:{'content-type':'application/json'},
+        body: JSON.stringify({ prayer }),
+      })
+      if (r.ok) { const j = await r.json(); setPrayers(p => p ? { ...p, completed: j.completed } : p) }
+    } catch (_) { fetchPrayers() }  // refetch on failure to reconcile
+  }
 
   const log = (type, payload) => fetch('/api/today-log', {
     method:'POST', headers:{'content-type':'application/json'},
@@ -118,6 +139,8 @@ export default function Today({ active = true }) {
       </div>
 
       <StreakStrip streaks={weekly?.streaks} weekly={weekly?.week} />
+
+      <PrayerStrip data={prayers} onToggle={togglePrayer} />
 
       {/* Raw lifestyle metrics shown as chips so they're not confused with pillar scores */}
       {(data?.movement?.steps != null || data?.daylight?.minutes != null || data?.mindful?.minutes != null) && (
