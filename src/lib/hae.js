@@ -127,6 +127,23 @@ export function translateHAE(body, { exerciseGoal = 30, standGoal = 12, moveGoal
       for (const p of points) { const v = num(p); if (v != null) ensure(dateOnly(p.date)).rings.steps = Math.round(v) }
 
     // ---- Lifestyle (own pillars) ----
+    // ---- Body composition (Zepp scale → Apple Health → HAE) ----
+    } else if (name === 'body_fat_percentage') {
+      for (const p of points) {
+        const v = num(p); if (v == null) continue
+        // HAE sometimes sends body fat as 0-1 fraction, sometimes 0-100. Normalize to %
+        const pct = v < 1 ? v * 100 : v
+        ensure(dateOnly(p.date)).body_fat_pct = +pct.toFixed(1)
+      }
+    } else if (name === 'lean_body_mass') {
+      for (const p of points) {
+        const v = num(p); if (v != null) ensure(dateOnly(p.date)).lean_mass_kg = +v.toFixed(1)
+      }
+    } else if (name === 'body_mass_index' || name === 'bmi') {
+      for (const p of points) {
+        const v = num(p); if (v != null) ensure(dateOnly(p.date)).bmi = +v.toFixed(1)
+      }
+
     } else if (name === 'time_in_daylight') {
       for (const p of points) { const v = num(p); if (v != null) ensure(dateOnly(p.date)).daylight_min = Math.round(v) }
     } else if (name === 'mindful_minutes' || name === 'mindful_session' || name === 'mindfulness') {
@@ -197,6 +214,15 @@ export function translateHAE(body, { exerciseGoal = 30, standGoal = 12, moveGoal
 
     if (slot.daylight_min != null) metrics.push({ type: 'daylight', date, value: slot.daylight_min })
     if (slot.mindful_min != null) metrics.push({ type: 'mindful', date, value: slot.mindful_min })
+
+    // Body composition (any of the 3 fields = emit a body_comp record)
+    if (slot.body_fat_pct != null || slot.lean_mass_kg != null || slot.bmi != null) {
+      metrics.push({ type: 'body_comp', date, data: {
+        body_fat_pct: slot.body_fat_pct ?? null,
+        lean_mass_kg: slot.lean_mass_kg ?? null,
+        bmi:          slot.bmi          ?? null,
+      }})
+    }
   }
 
   // Workouts

@@ -35,19 +35,21 @@ export default async function handler() {
 
   // Fetch today + last 7 days for each pillar in parallel
   const [
-    todaySleep, todayHrv, todayMovement, todayDaylight, todayMindful,
-    weekSleep, weekHrv, weekMovement, weekDaylight, weekMindful,
+    todaySleep, todayHrv, todayMovement, todayDaylight, todayMindful, todayBodyComp,
+    weekSleep, weekHrv, weekMovement, weekDaylight, weekMindful, weekBodyComp,
   ] = await Promise.all([
     kv.get(`health:${today}:sleep`),
     kv.get(`health:${today}:hrv`),
     kv.get(`health:${today}:movement`),
     kv.get(`health:${today}:daylight`),
     kv.get(`health:${today}:mindful`),
+    kv.get(`health:${today}:body_comp`),
     Promise.all(week.map(d => kv.get(`health:${d}:sleep`))),
     Promise.all(week.map(d => kv.get(`health:${d}:hrv`))),
     Promise.all(week.map(d => kv.get(`health:${d}:movement`))),
     Promise.all(week.map(d => kv.get(`health:${d}:daylight`))),
     Promise.all(week.map(d => kv.get(`health:${d}:mindful`))),
+    Promise.all(week.map(d => kv.get(`health:${d}:body_comp`))),
   ])
 
   const sleepAvg = avgPath(weekSleep, 'total_hours')
@@ -62,6 +64,9 @@ export default async function handler() {
   const moveAvg  = avgPath(weekMovement, 'move_pct')
   const dayAvg   = avgPath(weekDaylight, 'minutes')
   const mindAvg  = avgPath(weekMindful, 'minutes')
+  const bfAvg    = avgPath(weekBodyComp, 'body_fat_pct')
+  const lmAvg    = avgPath(weekBodyComp, 'lean_mass_kg')
+  const bmiAvg   = avgPath(weekBodyComp, 'bmi')
 
   const metrics = [
     { id:'sleep_hours', emoji:'💤', label:'Sleep',
@@ -145,6 +150,25 @@ export default async function handler() {
       week_avg: mindAvg != null ? Math.round(mindAvg) : 0,
       trend: trend(todayMindful?.minutes, mindAvg),
       goodWhen: 'high' },
+
+    // Body composition (from smart scale via HAE — Zepp etc.)
+    { id:'body_fat', emoji:'⚖️', label:'Body fat',
+      value: round1(todayBodyComp?.body_fat_pct), unit:'%',
+      week_avg: round1(bfAvg),
+      trend: trend(todayBodyComp?.body_fat_pct, bfAvg),
+      goodWhen: 'low' },
+
+    { id:'lean_mass', emoji:'💪', label:'Lean mass',
+      value: round1(todayBodyComp?.lean_mass_kg), unit:'kg',
+      week_avg: round1(lmAvg),
+      trend: trend(todayBodyComp?.lean_mass_kg, lmAvg),
+      goodWhen: 'high' },
+
+    { id:'bmi', emoji:'📐', label:'BMI',
+      value: round1(todayBodyComp?.bmi), unit:'',
+      week_avg: round1(bmiAvg),
+      trend: null,
+      goodWhen: 'neutral' },
   ]
 
   return new Response(JSON.stringify({ date: today, metrics }), {

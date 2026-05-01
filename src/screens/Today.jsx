@@ -10,6 +10,7 @@ import WeightCard from '../components/ui/WeightCard.jsx'
 import PrayerStrip from '../components/ui/PrayerStrip.jsx'
 import VitalsSheet from '../components/ui/VitalsSheet.jsx'
 import AlertBanner from '../components/ui/AlertBanner.jsx'
+import { useAlerts } from '../hooks/useAlerts.js'
 import { PILLAR_CONFIGS } from '../components/pillars/pillarConfigs.js'
 import Pillar from '../components/pillars/Pillar.jsx'
 import PillarDetail from '../components/pillars/PillarDetail.jsx'
@@ -89,7 +90,7 @@ export default function Today({ active = true }) {
   const [tags, setTags] = useState([])
   const [feeling, setFeeling] = useState(null)
   const [prayers, setPrayers] = useState(null)
-  const [alerts, setAlerts] = useState([])
+  const { alerts, dismiss: dismissAlert } = useAlerts(active)
   useEffect(() => { if (data?.tags) setTags(data.tags) }, [data?.tags])
   useEffect(() => { if (data?.subjective?.feeling != null) setFeeling(data.subjective.feeling) }, [data?.subjective?.feeling])
 
@@ -103,21 +104,6 @@ export default function Today({ active = true }) {
     try { const r = await fetch(`/api/prayers?date=${localDate()}`); if (r.ok) setPrayers(await r.json()) } catch (_) {}
   }, [])
   useEffect(() => { if (active) fetchPrayers() }, [active, fetchPrayers])
-
-  const fetchAlerts = useCallback(async () => {
-    try { const r = await fetch('/api/alerts'); if (r.ok) { const j = await r.json(); setAlerts(j.alerts || []) } } catch (_) {}
-  }, [])
-  useEffect(() => { if (active) fetchAlerts() }, [active, fetchAlerts])
-
-  const dismissAlert = async (type) => {
-    setAlerts(a => a.filter(x => x.type !== type))  // optimistic
-    try {
-      await fetch('/api/alerts', {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ type, action: 'dismiss' }),
-      })
-    } catch (_) { fetchAlerts() }
-  }
 
   const togglePrayer = async (prayer) => {
     setPrayers(p => p ? { ...p, completed: p.completed.includes(prayer)

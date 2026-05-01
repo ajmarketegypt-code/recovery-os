@@ -1,5 +1,6 @@
 import { kv } from '@vercel/kv'
 import { isoDate } from '../src/lib/kv.js'
+import { scoreStrength } from '../src/lib/scoring.js'
 export const config = { runtime:'edge' }
 export default async function handler(req) {
   if (req.method!=='POST') return new Response('Method Not Allowed',{status:405})
@@ -16,8 +17,16 @@ export default async function handler(req) {
   }
   else if (type==='weight') await kv.set(`health:${date}:weight`,{kg:data.kg,source:'manual'},{ex})
   else if (type==='sets') {
-    const cur=(await kv.get(`health:${date}:strength`))??{workouts:[],weekly_count:0,score:0,sets:[]}
-    await kv.set(`health:${date}:strength`,{...cur,sets:data.sets},{ex})
+    const cur = (await kv.get(`health:${date}:strength`)) ?? { workouts:[], weekly_count:0, score:0, sets:[] }
+    // Promote manual set logging to count as a workout (Watch can't see sets)
+    let workouts = cur.workouts
+    if (workouts.length === 0 && data.sets?.length > 0) {
+      workouts = [{ type: 'Manual logging', duration_min: null, calories: null, source: 'manual' }]
+    }
+    const settings = (await kv.get('settings')) ?? { workout_target: 4 }
+    const score = scoreStrength({ weekly_workouts: workouts.length, target: settings.workout_target })
+    await kv.set(`health:${date}:strength`,
+      { ...cur, sets: data.sets, workouts, weekly_count: workouts.length, score }, { ex })
   }
   else if (type === 'nutrition_manual') {
     const existing = (await kv.get(`health:${date}:nutrition`)) ??

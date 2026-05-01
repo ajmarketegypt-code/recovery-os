@@ -3,8 +3,10 @@ import { PILLAR_CONFIGS } from '../components/pillars/pillarConfigs.js'
 import Sparkline from '../components/ui/Sparkline.jsx'
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
 import { useBrief } from '../hooks/useBrief.js'
+import { useAlerts } from '../hooks/useAlerts.js'
 import PullIndicator from '../components/ui/PullIndicator.jsx'
 import MiniBriefBanner from '../components/ui/MiniBriefBanner.jsx'
+import AlertBanner from '../components/ui/AlertBanner.jsx'
 
 const ALL_SERIES = [
   ...PILLAR_CONFIGS,
@@ -65,11 +67,18 @@ export default function History({ active = true }) {
   useEffect(() => { fetchAll() }, [fetchAll])
   const { pullY, refreshing, threshold } = usePullToRefresh(fetchAll, active)
   const brief = useBrief(active)
+  const { alerts, dismiss: dismissAlert } = useAlerts(active)
 
   return (
     <div className="px-4 pt-14 pb-4 space-y-4 max-w-md mx-auto"
       style={{ transform: `translateY(${pullY * 0.5}px)`, transition: pullY === 0 ? 'transform 0.2s' : 'none' }}>
       <PullIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
+
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map(a => <AlertBanner key={a.type} alert={a} onDismiss={dismissAlert} />)}
+        </div>
+      )}
 
       <MiniBriefBanner brief={brief} />
 
