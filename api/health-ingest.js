@@ -3,6 +3,7 @@ import { kv } from '@vercel/kv'
 import { getHealthData, setHealthData, getHRVBaseline, setHRVBaseline, isoDate } from '../src/lib/kv.js'
 import { appendToBaseline } from '../src/lib/hrv.js'
 import { scoreSleep, scoreMovement, scoreStrength } from '../src/lib/scoring.js'
+import { isHAEFormat, translateHAE } from '../src/lib/hae.js'
 
 const INGEST_SECRET = process.env.INGEST_SECRET
 
@@ -23,8 +24,10 @@ export default async function handler(req) {
   let body
   try { body = await req.json() } catch { return new Response('Bad JSON', { status: 400 }) }
 
-  const { metrics = [], exportedAt } = body
-  if (!exportedAt) return new Response('Missing exportedAt', { status: 400 })
+  // Auto-detect Health Auto Export's native payload and translate it to our format
+  if (isHAEFormat(body)) body = translateHAE(body)
+
+  const { metrics = [], exportedAt = new Date().toISOString() } = body
 
   let processed = 0, skipped = 0
 
