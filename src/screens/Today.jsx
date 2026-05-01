@@ -89,23 +89,28 @@ export default function Today({ active = true }) {
   useEffect(() => { if (data?.tags) setTags(data.tags) }, [data?.tags])
   useEffect(() => { if (data?.subjective?.feeling != null) setFeeling(data.subjective.feeling) }, [data?.subjective?.feeling])
 
+  // Use user's LOCAL date — server-side UTC date can be off by a day at 1-3am
+  const localDate = () => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  }
+
   const fetchPrayers = useCallback(async () => {
-    try { const r = await fetch('/api/prayers'); if (r.ok) setPrayers(await r.json()) } catch (_) {}
+    try { const r = await fetch(`/api/prayers?date=${localDate()}`); if (r.ok) setPrayers(await r.json()) } catch (_) {}
   }, [])
   useEffect(() => { if (active) fetchPrayers() }, [active, fetchPrayers])
 
   const togglePrayer = async (prayer) => {
-    // Optimistic update
     setPrayers(p => p ? { ...p, completed: p.completed.includes(prayer)
       ? p.completed.filter(x => x !== prayer)
       : [...p.completed, prayer] } : p)
     try {
       const r = await fetch('/api/prayer-log', {
         method:'POST', headers:{'content-type':'application/json'},
-        body: JSON.stringify({ prayer }),
+        body: JSON.stringify({ prayer, date: localDate() }),
       })
       if (r.ok) { const j = await r.json(); setPrayers(p => p ? { ...p, completed: j.completed } : p) }
-    } catch (_) { fetchPrayers() }  // refetch on failure to reconcile
+    } catch (_) { fetchPrayers() }
   }
 
   const log = (type, payload) => fetch('/api/today-log', {
