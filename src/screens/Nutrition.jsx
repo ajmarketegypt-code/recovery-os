@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
+import PullIndicator from '../components/ui/PullIndicator.jsx'
 
 async function resizeImage(file, maxPx=800) {
   return new Promise(resolve => {
@@ -38,7 +39,7 @@ export default function Nutrition() {
     fetch('/api/today').then(r=>r.json()).then(d=>setNutrition(d.nutrition)), [])
 
   useEffect(()=>{ fetchData() }, [fetchData])
-  const refreshing = usePullToRefresh(fetchData)
+  const { pullY, refreshing, threshold } = usePullToRefresh(fetchData)
 
   const handleFile = async e => {
     const file = e.target.files?.[0]; if (!file) return
@@ -61,13 +62,9 @@ export default function Nutrition() {
   const totals = nutrition?.totals ?? {protein_g:0,carbs_g:0,fat_g:0,calories:0}
 
   return (
-    <div className="px-4 pt-14 pb-4 space-y-5 max-w-md mx-auto">
-      {refreshing && (
-        <div className="flex justify-center py-1">
-          <div className="w-5 h-5 rounded-full border-2 animate-spin"
-            style={{borderColor:'var(--color-accent)',borderTopColor:'transparent'}} />
-        </div>
-      )}
+    <div className="px-4 pt-14 pb-4 space-y-5 max-w-md mx-auto"
+      style={{ transform: `translateY(${pullY * 0.5}px)`, transition: pullY === 0 ? 'transform 0.2s' : 'none' }}>
+      <PullIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
       <div className="space-y-0.5">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{color:'var(--color-accent)'}}>Today's intake</p>
         <h1 className="text-3xl font-black tracking-tight">Nutrition</h1>

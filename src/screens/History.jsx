@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { PILLAR_CONFIGS } from '../components/pillars/pillarConfigs.js'
 import Sparkline from '../components/ui/Sparkline.jsx'
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
+import PullIndicator from '../components/ui/PullIndicator.jsx'
 
 export default function History() {
   const [pillar, setPillar] = useState('sleep')
@@ -16,19 +17,15 @@ export default function History() {
   }, [pillar])
 
   useEffect(()=>{ fetchAll() }, [fetchAll])
-  const refreshing = usePullToRefresh(fetchAll)
+  const { pullY, refreshing, threshold } = usePullToRefresh(fetchAll)
 
   const cfg = PILLAR_CONFIGS.find(c=>c.id===pillar)
   const ALL = [...PILLAR_CONFIGS, {id:'weight',label:'Weight',emoji:'⚖️',color:'#a3e635'}]
 
   return (
-    <div className="px-4 pt-14 pb-4 space-y-5 max-w-md mx-auto">
-      {refreshing && (
-        <div className="flex justify-center py-1">
-          <div className="w-5 h-5 rounded-full border-2 animate-spin"
-            style={{borderColor:'var(--color-accent)',borderTopColor:'transparent'}} />
-        </div>
-      )}
+    <div className="px-4 pt-14 pb-4 space-y-5 max-w-md mx-auto"
+      style={{ transform: `translateY(${pullY * 0.5}px)`, transition: pullY === 0 ? 'transform 0.2s' : 'none' }}>
+      <PullIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
       <div className="space-y-0.5">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{color:'var(--color-accent)'}}>Trends</p>
         <h1 className="text-3xl font-black tracking-tight">History</h1>
