@@ -21,11 +21,27 @@ export default async function handler(req) {
   const secret = req.headers.get('x-ingest-secret')
   if (secret !== INGEST_SECRET) return new Response('Unauthorized', { status: 401 })
 
+  let rawBody
+  try { rawBody = await req.text() } catch { return new Response('Bad body', { status: 400 }) }
+
   let body
-  try { body = await req.json() } catch { return new Response('Bad JSON', { status: 400 }) }
+  try { body = JSON.parse(rawBody) } catch { return new Response('Bad JSON', { status: 400 }) }
+
+  // DEBUG: stash last raw payload + a tiny summary for inspection
+  const wasHAE = isHAEFormat(body)
+  await kv.set('debug:last-ingest', {
+    received_at: new Date().toISOString(),
+    bytes: rawBody.length,
+    detected_format: wasHAE ? 'HAE' : 'native',
+    sample_body: rawBody.slice(0, 4000),  // first 4KB
+    metric_names: wasHAE
+      ? (body.data?.metrics ?? []).map(m => m.name).slice(0, 50)
+      : (body.metrics ?? []).map(m => m.type).slice(0, 50),
+    workout_count: body.data?.workouts?.length ?? 0,
+  }, { ex: 86400 })
 
   // Auto-detect Health Auto Export's native payload and translate it to our format
-  if (isHAEFormat(body)) body = translateHAE(body)
+  if (wasHAE) body = translateHAE(body)
 
   const { metrics = [], exportedAt = new Date().toISOString() } = body
 
