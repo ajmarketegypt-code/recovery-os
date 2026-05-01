@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { usePushStatus } from '../hooks/usePushStatus.js'
 const IS_JULIE = import.meta.env.VITE_USER_NAME === 'julie'
 
 function DevButton({ label, onClick, busy, tone='surface' }) {
@@ -70,6 +71,7 @@ export default function Settings() {
   const [s, setS] = useState(null)
   const [busy, setBusy] = useState(null)
   const [devMsg, setDevMsg] = useState(null)
+  const push = usePushStatus()
   const save = async patch => {
     const updated = await fetch('/api/settings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(patch)}).then(r=>r.json())
     setS(updated)
@@ -94,6 +96,31 @@ export default function Settings() {
       </div>
 
       <Section title="Notifications">
+        {/* Push subscription state + enable button */}
+        <Row label="Push notifications">
+          {push.status === 'checking' && (
+            <span className="text-xs" style={{color:'var(--color-muted)'}}>Checking…</span>
+          )}
+          {push.status === 'unsupported' && (
+            <span className="text-xs" style={{color:'var(--color-muted)'}}>Not supported on this device</span>
+          )}
+          {push.status === 'subscribed' && (
+            <span className="text-xs font-semibold" style={{color:'var(--color-accent)'}}>Enabled ✓</span>
+          )}
+          {push.status === 'denied' && (
+            <span className="text-xs font-semibold" style={{color:'var(--color-danger)'}}>Blocked — enable in iPhone Settings</span>
+          )}
+          {push.status === 'default' && (
+            <button onClick={push.enable} disabled={push.busy}
+              className="text-xs px-3 py-1.5 rounded-lg font-semibold disabled:opacity-50"
+              style={{background:'var(--color-accent)',color:'var(--color-bg)'}}>
+              {push.busy ? '…' : 'Enable'}
+            </button>
+          )}
+        </Row>
+        {push.error && (
+          <p className="text-xs" style={{color:'var(--color-danger)'}}>{push.error}</p>
+        )}
         <Row label="Morning brief">
           <input type="time" value={s.notification_times.morning}
             onChange={e=>save({notification_times:{...s.notification_times,morning:e.target.value}})}
