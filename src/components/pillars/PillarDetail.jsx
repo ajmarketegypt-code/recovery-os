@@ -186,16 +186,49 @@ export default function PillarDetail({ pillarId, data, onClose }) {
           </div>
         )}
         {pillarId==='strength' && (
-          <div className="space-y-2">
-            {(data?.workouts??[]).map((w,i)=>(
-              <div key={i} className="rounded-xl p-3" style={{background:'var(--color-bg)'}}>
-                <p className="text-sm font-medium">{w.type||'Workout'}</p>
-                <p className="text-xs mt-0.5" style={{color:'var(--color-muted)'}}>{w.duration_min}min · {w.calories} kcal</p>
+          <div className="space-y-3">
+            {(data?.workouts?.length ?? 0) === 0 ? (
+              <div className="rounded-xl p-4 space-y-2"
+                style={{background:'var(--color-bg)',border:'1px solid var(--color-border)'}}>
+                <p className="text-sm font-semibold">No workout detected today</p>
+                <p className="text-xs leading-relaxed" style={{color:'var(--color-muted)'}}>
+                  Start a workout on your Apple Watch (Workout app → Strength Training → Start)
+                  and it auto-logs here — type, duration, calories, no input needed.
+                </p>
               </div>
-            ))}
-            {!showSets
-              ? <button onClick={()=>setShowSets(true)} className="text-sm font-medium" style={{color:'var(--color-accent)'}}>+ Log sets & reps</button>
-              : <SetsLogger date={today} onSave={()=>setShowSets(false)} />}
+            ) : (
+              <>
+                {data.workouts.map((w,i)=>(
+                  <div key={i} className="rounded-xl p-3 flex items-center justify-between"
+                    style={{background:'var(--color-bg)',border:'1px solid var(--color-border)'}}>
+                    <div>
+                      <p className="text-sm font-semibold">{w.type || 'Workout'}</p>
+                      <p className="text-[10px] uppercase tracking-wider mt-0.5" style={{color:'var(--color-muted)'}}>
+                        Auto-detected by Watch
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-base font-bold tabular-nums">{w.duration_min}<span className="text-xs font-normal ml-0.5" style={{color:'var(--color-muted)'}}>min</span></p>
+                      <p className="text-xs tabular-nums" style={{color:'var(--color-muted)'}}>{w.calories} kcal</p>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* Optional power-user detail for recomp progress tracking */}
+            {!showSets ? (
+              <button onClick={()=>setShowSets(true)}
+                className="w-full text-left text-xs px-3 py-2.5 rounded-xl active:scale-95 transition-transform"
+                style={{background:'transparent',border:'1px dashed var(--color-border)',color:'var(--color-muted)'}}>
+                <span style={{color:'var(--color-accent)'}}>+</span> Add sets/reps/weight
+                <span className="block mt-0.5 text-[10px] leading-tight">
+                  Optional — for tracking lift progression. Watch can't see specific exercises.
+                </span>
+              </button>
+            ) : (
+              <SetsLogger date={today} onSave={()=>setShowSets(false)} />
+            )}
           </div>
         )}
         {history.length>1 && (
