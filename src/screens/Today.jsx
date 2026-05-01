@@ -16,6 +16,7 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 const greeting = () => { const h=new Date().getHours(); return h<12?'Good morning':h<17?'Good afternoon':'Good evening' }
 
 function BriefCard({ brief }) {
+  const [expanded, setExpanded] = useState(false)
   if (brief?.skipped) {
     return (
       <div className="card p-4">
@@ -26,27 +27,42 @@ function BriefCard({ brief }) {
       </div>
     )
   }
-  if (!brief?.headline) return <div className="card h-28 animate-pulse" />
+  if (!brief?.headline) return <div className="card h-24 animate-pulse" />
   const rc = {
     'Train hard':       'var(--color-accent)',
     'Train as planned': 'var(--color-accent)',
     'Light only':       'var(--color-warning)',
     'Rest':             'var(--color-danger)',
   }[brief.recommendation] || 'var(--color-warning)'
+  const hasMore = brief.bullets?.length > 0
   return (
-    <div className="card p-4 space-y-2.5">
+    <div className="card p-4 space-y-2 active:opacity-90 transition-opacity"
+      onClick={() => hasMore && setExpanded(e => !e)}>
       <div className="flex items-start justify-between gap-3">
-        <p className="font-semibold leading-snug">{brief.headline}</p>
-        <span className="text-xs px-2.5 py-1 rounded-full shrink-0 font-semibold"
-          style={{background:rc+'20',color:rc}}>{brief.recommendation}</span>
+        <p className="text-lg font-bold leading-tight">{brief.headline}</p>
+        <span className="text-xs px-2.5 py-1 rounded-full shrink-0 font-semibold whitespace-nowrap"
+          style={{ background: rc+'20', color: rc }}>{brief.recommendation}</span>
       </div>
-      <ul className="space-y-1.5">
-        {brief.bullets?.map((b,i) => (
-          <li key={i} className="text-xs flex gap-2" style={{color:'var(--color-muted)'}}>
-            <span style={{color:'var(--color-accent)'}}>•</span>{b}
-          </li>
-        ))}
-      </ul>
+      {brief.sub && (
+        <p className="text-sm leading-snug" style={{ color:'var(--color-muted)' }}>{brief.sub}</p>
+      )}
+      {hasMore && (
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-[10px] uppercase tracking-wider" style={{ color:'var(--color-muted)' }}>
+            {expanded ? 'Tap to hide' : 'Tap for why'}
+          </span>
+          <span className="text-xs" style={{ color:'var(--color-muted)' }}>{expanded ? '▲' : '▼'}</span>
+        </div>
+      )}
+      {expanded && hasMore && (
+        <ul className="space-y-1.5 pt-1 border-t" style={{ borderColor:'var(--color-border)' }}>
+          {brief.bullets.map((b, i) => (
+            <li key={i} className="text-xs flex gap-2 pt-1.5" style={{ color:'var(--color-muted)' }}>
+              <span style={{ color:'var(--color-accent)' }}>•</span>{b}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

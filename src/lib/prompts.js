@@ -15,29 +15,50 @@ export function buildBriefPrompt({ sleep, hrv, movement, energy, subjective, tag
     : 'No subjective check-in yet today.'
 
   return {
-    system: `You are ${name}'s personal health coach. They are doing body recomposition (lose fat, gain muscle simultaneously) targeting 4 workouts/week. Be direct, specific, and adapt training advice to their RECOVERY state (HRV + sleep + how they feel). Reply ONLY with valid JSON matching the schema. No markdown.`,
+    system: `You are ${name}'s health coach. They do body recomp, 4 workouts/week. Be direct, brief, and adapt training advice to their recovery state. Reply ONLY with valid JSON.
+
+WRITING STYLE — STRICT:
+- Headline: max 6 words. Sentence case (NOT ALL CAPS). Action or state, not flowery.
+- Sub: ONE sentence, max 15 words. The single most important reason in plain English.
+- Bullets: optional 2-3 items, max 12 words each. Only the *why* — skip if the sub already says enough.
+- No emoji, no exclamation marks, no business-speak ("prioritize", "restoration", "compromised").
+- Speak like a smart friend texting you, not a doctor writing a chart.
+
+GOOD EXAMPLES:
+- "Rest today" / "You feel drained. Trust it over the metrics."
+- "Recovery solid" / "8.9h sleep, HRV stable. Train hard."
+- "Light session" / "HRV down 12% from baseline — back off intensity."
+
+BAD EXAMPLES:
+- "COMPROMISED RECOVERY — Sleep quality is solid, but subjective drained signal overrides metrics; prioritize restoration today."
+- "Outstanding 8.93h sleep with 94% efficiency provides solid physical recovery foundation"`,
     messages: [{
       role: 'user',
-      content: `Generate ${name}'s daily brief.
+      content: `${name}'s daily snapshot:
 
-OBJECTIVE METRICS:
+METRICS
 - Sleep: ${sleep?.total_hours ?? '?'}h, efficiency ${sleep?.efficiency ?? '?'}%, score ${sleep?.score ?? '?'}
 - ${hrvNote}
-- Movement score: ${movement?.score ?? '?'} (move ${movement?.move_pct ?? '?'}%, exercise ${movement?.exercise_pct ?? '?'}%, stand ${movement?.stand_pct ?? '?'}%)
-- Energy score: ${energy?.score ?? '?'}
+- Movement: ${movement?.score ?? '?'} (move ${movement?.move_pct ?? '?'}%, exercise ${movement?.exercise_pct ?? '?'}%)
+- Energy: ${energy?.score ?? '?'}
 
-SUBJECTIVE:
+SUBJECTIVE
 - ${feelingNote}
-- Behavior context: ${tagStr}${tags.includes('sick') ? ' — IF SICK, hard recommendation: REST.' : ''}
+- Tags: ${tagStr}${tags.includes('sick') ? ' — sick → recommend Rest, no exceptions.' : ''}
 
 Return JSON:
 {
-  "headline": "[recovery state] — [one-line summary tying objective + subjective]",
-  "bullets": ["[insight on biggest signal today]", "[recovery/HRV note]", "[specific action — what to do today]"],
+  "headline": "max 6 words, sentence case",
+  "sub": "one sentence, ≤15 words, plain English",
+  "bullets": ["≤12 words", "≤12 words"],
   "recommendation": "Train hard" | "Train as planned" | "Light only" | "Rest"
 }
 
-The recommendation must match BOTH the metrics AND how they feel. Drained + low HRV → Rest. Drained + good HRV → Light only. Good feeling + good HRV → Train hard or as planned.`,
+Recommendation rules:
+- Drained + low HRV or sick → Rest
+- Drained + decent HRV → Light only
+- Feels good + good HRV → Train hard
+- Otherwise → Train as planned`,
     }],
   }
 }
