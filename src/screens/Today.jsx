@@ -9,6 +9,7 @@ import CheckIn from '../components/ui/CheckIn.jsx'
 import WeightCard from '../components/ui/WeightCard.jsx'
 import PrayerStrip from '../components/ui/PrayerStrip.jsx'
 import VitalsSheet from '../components/ui/VitalsSheet.jsx'
+import AlertBanner from '../components/ui/AlertBanner.jsx'
 import { PILLAR_CONFIGS } from '../components/pillars/pillarConfigs.js'
 import Pillar from '../components/pillars/Pillar.jsx'
 import PillarDetail from '../components/pillars/PillarDetail.jsx'
@@ -88,6 +89,7 @@ export default function Today({ active = true }) {
   const [tags, setTags] = useState([])
   const [feeling, setFeeling] = useState(null)
   const [prayers, setPrayers] = useState(null)
+  const [alerts, setAlerts] = useState([])
   useEffect(() => { if (data?.tags) setTags(data.tags) }, [data?.tags])
   useEffect(() => { if (data?.subjective?.feeling != null) setFeeling(data.subjective.feeling) }, [data?.subjective?.feeling])
 
@@ -101,6 +103,21 @@ export default function Today({ active = true }) {
     try { const r = await fetch(`/api/prayers?date=${localDate()}`); if (r.ok) setPrayers(await r.json()) } catch (_) {}
   }, [])
   useEffect(() => { if (active) fetchPrayers() }, [active, fetchPrayers])
+
+  const fetchAlerts = useCallback(async () => {
+    try { const r = await fetch('/api/alerts'); if (r.ok) { const j = await r.json(); setAlerts(j.alerts || []) } } catch (_) {}
+  }, [])
+  useEffect(() => { if (active) fetchAlerts() }, [active, fetchAlerts])
+
+  const dismissAlert = async (type) => {
+    setAlerts(a => a.filter(x => x.type !== type))  // optimistic
+    try {
+      await fetch('/api/alerts', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ type, action: 'dismiss' }),
+      })
+    } catch (_) { fetchAlerts() }
+  }
 
   const togglePrayer = async (prayer) => {
     setPrayers(p => p ? { ...p, completed: p.completed.includes(prayer)
@@ -136,6 +153,12 @@ export default function Today({ active = true }) {
         </p>
         <h1 className="text-3xl font-black tracking-tight">{greeting()}, {name}</h1>
       </div>
+
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map(a => <AlertBanner key={a.type} alert={a} onDismiss={dismissAlert} />)}
+        </div>
+      )}
 
       <BriefCard brief={brief} />
 

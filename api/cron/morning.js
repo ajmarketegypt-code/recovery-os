@@ -53,6 +53,14 @@ export default async function handler(req) {
   // Fire each alert as its own push, then mark fired for today
   if (alerts.length > 0) {
     const todaysFired = (await kv.get(`alert:fired:${today}`)) ?? []
+
+    // Update active in-app list — replace any existing of same type with newer
+    const activeList = (await kv.get('alerts:active')) ?? []
+    const keptTypes = new Set(alerts.map(a => a.type))
+    const filtered = activeList.filter(a => !keptTypes.has(a.type))
+    const stamped = alerts.map(a => ({ ...a, fired_at: new Date().toISOString() }))
+    const nextActive = [...filtered, ...stamped].slice(-10)  // cap
+
     for (const a of alerts) {
       try {
         await fetch(`${origin}/api/push/send`, {
@@ -63,7 +71,9 @@ export default async function handler(req) {
         todaysFired.push(a.type)
       } catch (_) {}
     }
+
     await kv.set(`alert:fired:${today}`, todaysFired, { ex: 60 * 60 * 24 * (SUPPRESS_DAYS_VALUE + 1) })
+    await kv.set('alerts:active', nextActive, { ex: 60 * 60 * 24 * 30 })
   }
 
   return new Response(JSON.stringify({

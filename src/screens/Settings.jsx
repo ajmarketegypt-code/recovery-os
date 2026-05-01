@@ -174,6 +174,10 @@ export default function Settings() {
             onClick={()=>callDev('/api/dev/seed', 'seed')} />
           <DevButton label="Test push" busy={busy==='push'}
             onClick={()=>callDev('/api/dev/test-push', 'push')} />
+          <DevButton label="Generate report" busy={busy==='report'}
+            onClick={()=>callDev('/api/dev/generate-report', 'report')} />
+          <DevButton label="Run morning cron" busy={busy==='cron'}
+            onClick={()=>callDev('/api/dev/trigger-cron', 'cron')} />
           <DevButton label="Wipe all data" tone="danger" busy={busy==='wipe'}
             onClick={()=>{ if (confirm('Delete all health data? Settings will stay.')) callDev('/api/dev/wipe', 'wipe') }} />
         </div>

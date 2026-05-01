@@ -216,12 +216,30 @@ export default function PillarDetail({ pillarId, data, onClose }) {
               </>
             )}
 
+            {/* Show previously logged sets so they don't vanish after save */}
+            {(data?.sets?.length > 0) && (
+              <div className="rounded-xl p-3 space-y-1.5"
+                style={{background:'var(--color-bg)',border:'1px solid var(--color-border)'}}>
+                <p className="text-[10px] uppercase tracking-wider" style={{color:'var(--color-muted)'}}>
+                  Logged sets today
+                </p>
+                {data.sets.map((s, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <span className="font-medium">{s.exercise || `Set ${i+1}`}</span>
+                    <span className="tabular-nums" style={{color:'var(--color-muted)'}}>
+                      {s.sets}×{s.reps} @ {s.weight_kg}kg
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Optional power-user detail for recomp progress tracking */}
             {!showSets ? (
               <button onClick={()=>setShowSets(true)}
                 className="w-full text-left text-xs px-3 py-2.5 rounded-xl active:scale-95 transition-transform"
                 style={{background:'transparent',border:'1px dashed var(--color-border)',color:'var(--color-muted)'}}>
-                <span style={{color:'var(--color-accent)'}}>+</span> Add sets/reps/weight
+                <span style={{color:'var(--color-accent)'}}>+</span> {data?.sets?.length > 0 ? 'Add more sets' : 'Add sets/reps/weight'}
                 <span className="block mt-0.5 text-[10px] leading-tight">
                   Optional — for tracking lift progression. Watch can't see specific exercises.
                 </span>
