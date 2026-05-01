@@ -8,6 +8,7 @@ import StreakStrip from '../components/ui/StreakStrip.jsx'
 import CheckIn from '../components/ui/CheckIn.jsx'
 import WeightCard from '../components/ui/WeightCard.jsx'
 import PrayerStrip from '../components/ui/PrayerStrip.jsx'
+import VitalsSheet from '../components/ui/VitalsSheet.jsx'
 import { PILLAR_CONFIGS } from '../components/pillars/pillarConfigs.js'
 import Pillar from '../components/pillars/Pillar.jsx'
 import PillarDetail from '../components/pillars/PillarDetail.jsx'
@@ -83,6 +84,7 @@ export default function Today({ active = true }) {
   const { pullY, refreshing, threshold } = usePullToRefresh(refresh, active)
   const online = useOnline()
   const [detail, setDetail] = useState(null)
+  const [vitalsOpen, setVitalsOpen] = useState(false)
   const [tags, setTags] = useState([])
   const [feeling, setFeeling] = useState(null)
   const [prayers, setPrayers] = useState(null)
@@ -143,6 +145,14 @@ export default function Today({ active = true }) {
         ))}
       </div>
 
+      {/* Open the comprehensive Vitals view */}
+      <button onClick={() => setVitalsOpen(true)}
+        className="w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+        style={{ background:'var(--color-surface)', color:'var(--color-accent)', border:'1px dashed var(--color-border)' }}>
+        All vitals
+        <span className="text-xs">→</span>
+      </button>
+
       <StreakStrip streaks={weekly?.streaks} weekly={weekly?.week} />
 
       <PrayerStrip data={prayers} onToggle={togglePrayer} />
@@ -195,6 +205,7 @@ export default function Today({ active = true }) {
       />
 
       {detail && <PillarDetail pillarId={detail} data={data?.[detail]} onClose={() => setDetail(null)} />}
+      <VitalsSheet open={vitalsOpen} onClose={() => setVitalsOpen(false)} />
     </div>
   )
 }
