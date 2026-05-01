@@ -4,6 +4,7 @@ import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
 import { useOnline } from '../hooks/useOnline.js'
 import PullIndicator from '../components/ui/PullIndicator.jsx'
 import StatusBanner from '../components/ui/StatusBanner.jsx'
+import StreakStrip from '../components/ui/StreakStrip.jsx'
 import { PILLAR_CONFIGS } from '../components/pillars/pillarConfigs.js'
 import Pillar from '../components/pillars/Pillar.jsx'
 import PillarDetail from '../components/pillars/PillarDetail.jsx'
@@ -53,7 +54,7 @@ function BriefCard({ brief }) {
 }
 
 export default function Today({ active = true }) {
-  const { data, brief, error, refresh } = useHealth()
+  const { data, brief, weekly, error, refresh } = useHealth()
   const { pullY, refreshing, threshold } = usePullToRefresh(refresh, active)
   const online = useOnline()
   const [detail, setDetail] = useState(null)
@@ -79,8 +80,9 @@ export default function Today({ active = true }) {
       </div>
       <BriefCard brief={brief} />
       <div className="grid grid-cols-3 gap-3">
-        {PILLAR_CONFIGS.map(cfg => <Pillar key={cfg.id} config={cfg} data={data?.[cfg.id]} onTap={setDetail} />)}
+        {PILLAR_CONFIGS.map(cfg => <Pillar key={cfg.id} config={cfg} data={data?.[cfg.id]} weekly={weekly} onTap={setDetail} />)}
       </div>
+      <StreakStrip streaks={weekly?.streaks} weekly={weekly?.week} />
 
       {/* Lifestyle context chips: daylight + mindful */}
       {(data?.daylight?.minutes != null || data?.mindful?.minutes != null) && (

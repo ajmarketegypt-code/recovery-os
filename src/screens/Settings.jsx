@@ -49,14 +49,17 @@ function SpendBar({ label, used, cap, color }) {
   )
 }
 
-function Stepper({ value, min, max, onChange }) {
+function Stepper({ value, min, max, step = 1, unit, onChange }) {
+  const round = v => +(Math.round(v / step) * step).toFixed(2)
   return (
     <div className="flex items-center gap-3">
-      <button onClick={()=>onChange(Math.max(min,value-1))}
+      <button onClick={()=>onChange(Math.max(min, round(value - step)))}
         className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg"
         style={{background:'var(--color-surface)',border:'1px solid var(--color-border)'}}>−</button>
-      <span className="w-6 text-center font-bold">{value}</span>
-      <button onClick={()=>onChange(Math.min(max,value+1))}
+      <span className="min-w-[3rem] text-center font-bold tabular-nums">
+        {value}{unit && <span className="text-xs font-normal ml-0.5" style={{color:'var(--color-muted)'}}>{unit}</span>}
+      </span>
+      <button onClick={()=>onChange(Math.min(max, round(value + step)))}
         className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg"
         style={{background:'var(--color-surface)',border:'1px solid var(--color-border)'}}>+</button>
     </div>
@@ -103,9 +106,25 @@ export default function Settings() {
         </Row>
       </Section>
 
-      <Section title="Training">
-        <Row label="Weekly workout target">
+      <Section title="Targets">
+        <Row label="Sleep">
+          <Stepper value={s.sleep_target_hours ?? 8} min={5} max={10} step={0.5} unit="h"
+            onChange={v=>save({sleep_target_hours:v})} />
+        </Row>
+        <Row label="HRV">
+          <Stepper value={s.hrv_target_ms ?? 45} min={20} max={100} step={1} unit="ms"
+            onChange={v=>save({hrv_target_ms:v})} />
+        </Row>
+        <Row label="Workouts / week">
           <Stepper value={s.workout_target} min={1} max={7} onChange={v=>save({workout_target:v})} />
+        </Row>
+        <Row label="Daylight / day">
+          <Stepper value={s.daylight_target_min ?? 30} min={5} max={120} step={5} unit="min"
+            onChange={v=>save({daylight_target_min:v})} />
+        </Row>
+        <Row label="Protein / day">
+          <Stepper value={s.protein_target_g ?? 140} min={60} max={250} step={5} unit="g"
+            onChange={v=>save({protein_target_g:v})} />
         </Row>
       </Section>
 
