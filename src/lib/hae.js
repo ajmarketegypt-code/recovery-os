@@ -91,8 +91,24 @@ export function translateHAE(body, { exerciseGoal = 30, standGoal = 12, moveGoal
     // ---- Activity rings ----
     } else if (name === 'apple_exercise_time') {
       for (const p of points) { const v = num(p); if (v != null) ensure(dateOnly(p.date)).rings.exercise_pct = Math.round((v / exerciseGoal) * 100) }
-    } else if (name === 'apple_stand_hour' || name === 'apple_stand_time') {
-      for (const p of points) { const v = num(p); if (v != null) ensure(dateOnly(p.date)).rings.stand_pct = Math.round((v / standGoal) * 100) }
+    } else if (name === 'apple_stand_hour') {
+      // Counts of stand-hours (max 12 per day). 5/12 = 42%
+      for (const p of points) {
+        const v = num(p); if (v == null) continue
+        const slot = ensure(dateOnly(p.date))
+        slot.rings.stand_pct = Math.round((v / standGoal) * 100)
+        slot.rings._stand_source = 'hour'
+      }
+    } else if (name === 'apple_stand_time') {
+      // Total minutes standing — convert to hours, then percentage of 12-hour goal.
+      // Only use this if apple_stand_hour wasn't already provided (it's the canonical metric).
+      for (const p of points) {
+        const v = num(p); if (v == null) continue
+        const slot = ensure(dateOnly(p.date))
+        if (slot.rings._stand_source === 'hour') continue  // hour wins
+        slot.rings.stand_pct = Math.round((v / 60 / standGoal) * 100)
+        slot.rings._stand_source = 'time'
+      }
     } else if (name === 'active_energy') {
       // HAE sends kJ in metric regions, kcal in US — convert to kcal for consistency
       const isKJ = (metric.units || '').toLowerCase() === 'kj'
@@ -153,7 +169,7 @@ export function translateHAE(body, { exerciseGoal = 30, standGoal = 12, moveGoal
       metrics.push({ type: 'fitness_extra', date, data: slot.fitness })
     }
 
-    // Activity rings
+    // Activity rings (drop internal-only _stand_source bookkeeping)
     const r = slot.rings
     if (r.move_pct != null || r.exercise_pct != null || r.stand_pct != null || r.steps != null) {
       metrics.push({
@@ -166,6 +182,7 @@ export function translateHAE(body, { exerciseGoal = 30, standGoal = 12, moveGoal
         },
       })
     }
+    delete r._stand_source
 
     if (slot.daylight_min != null) metrics.push({ type: 'daylight', date, value: slot.daylight_min })
     if (slot.mindful_min != null) metrics.push({ type: 'mindful', date, value: slot.mindful_min })
