@@ -16,8 +16,23 @@ export default class ErrorBoundary extends Component {
 
   componentDidCatch(error, info) {
     this.setState({ info })
-    // Surface to console for any iOS Safari Web Inspector session
     console.error('[ErrorBoundary]', error, info?.componentStack)
+
+    // Auto-recover from stale-bundle chunk-load errors. The page is running
+    // an old build that references hashed chunks that no longer exist on the
+    // server. Reloading fetches fresh HTML pointing at current chunks.
+    // Session flag prevents reload loops if the underlying error isn't actually
+    // a chunk issue.
+    const msg = String(error?.message || '').toLowerCase()
+    const isChunkError =
+      msg.includes('importing a module script failed') ||
+      msg.includes('failed to fetch dynamically imported module') ||
+      msg.includes('loading chunk') ||
+      msg.includes("can't find variable") && msg.includes('chunk')
+    if (isChunkError && !sessionStorage.getItem('chunk-reload-attempted')) {
+      sessionStorage.setItem('chunk-reload-attempted', '1')
+      window.location.reload()
+    }
   }
 
   reset = () => this.setState({ error: null, info: null })
