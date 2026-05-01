@@ -4,12 +4,14 @@ import { kv } from '@vercel/kv'
 export const config = { runtime: 'edge' }
 
 async function deleteByPattern(pattern) {
-  let cursor = 0, count = 0
+  let cursor = '0', count = 0, iterations = 0
   do {
-    const [next, keys] = await kv.scan(cursor, { match: pattern, count: 100 })
+    // count:1000 = ask Upstash for up to 1000 matches per scan call (default is ~10!)
+    const [next, keys] = await kv.scan(cursor, { match: pattern, count: 1000 })
     if (keys.length) { await kv.del(...keys); count += keys.length }
-    cursor = parseInt(next)
-  } while (cursor !== 0)
+    cursor = String(next)
+    iterations++
+  } while (cursor !== '0' && iterations < 50)  // safety cap
   return count
 }
 
