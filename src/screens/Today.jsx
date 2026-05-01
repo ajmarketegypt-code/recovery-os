@@ -17,16 +17,16 @@ const TAG_OPTIONS = [
 ]
 
 function BriefCard({ brief }) {
-  if (!brief?.headline) return <div className="rounded-2xl p-4 h-28 animate-pulse" style={{background:'var(--color-surface)'}} />
+  if (!brief?.headline) return <div className="card h-28 animate-pulse" />
   const rc = { 'Train hard':'var(--color-accent)', 'Rest':'var(--color-danger)' }[brief.recommendation]||'var(--color-warning)'
   return (
-    <div className="rounded-2xl p-4 space-y-2" style={{background:'var(--color-surface)'}}>
-      <div className="flex items-start justify-between gap-2">
-        <p className="font-semibold text-sm leading-snug">{brief.headline}</p>
-        <span className="text-xs px-2 py-0.5 rounded-full shrink-0 font-medium"
-              style={{background:rc+'22',color:rc}}>{brief.recommendation}</span>
+    <div className="card p-4 space-y-2.5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="font-semibold leading-snug">{brief.headline}</p>
+        <span className="text-xs px-2.5 py-1 rounded-full shrink-0 font-semibold"
+              style={{background:rc+'20',color:rc}}>{brief.recommendation}</span>
       </div>
-      <ul className="space-y-1">
+      <ul className="space-y-1.5">
         {brief.bullets?.map((b,i) => (
           <li key={i} className="text-xs flex gap-2" style={{color:'var(--color-muted)'}}>
             <span style={{color:'var(--color-accent)'}}>•</span>{b}
@@ -49,26 +49,28 @@ export default function Today() {
   const name = localStorage.getItem('health_name') || 'there'
   const d = new Date()
   return (
-    <div className="px-4 pt-12 pb-4 space-y-4 max-w-md mx-auto">
-      <div>
-        <h1 className="text-xl font-bold">{greeting()}, {name}</h1>
-        <p className="text-sm" style={{color:'var(--color-muted)'}}>{DAYS[d.getDay()]} · {MONTHS[d.getMonth()]} {d.getDate()}</p>
+    <div className="px-4 pt-14 pb-4 space-y-5 max-w-md mx-auto">
+      <div className="space-y-0.5">
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{color:'var(--color-accent)'}}>
+          {DAYS[d.getDay()]} · {MONTHS[d.getMonth()]} {d.getDate()}
+        </p>
+        <h1 className="text-3xl font-black tracking-tight">{greeting()}, {name}</h1>
       </div>
       <BriefCard brief={brief} />
       <div className="grid grid-cols-3 gap-3">
         {PILLAR_CONFIGS.map(cfg => <Pillar key={cfg.id} config={cfg} data={data?.[cfg.id]} onTap={setDetail} />)}
       </div>
-      <section className="space-y-3 pt-2">
-        <p className="text-xs font-semibold uppercase tracking-wide" style={{color:'var(--color-muted)'}}>Today</p>
+      <section className="space-y-3 pt-1">
+        <p className="text-xs font-semibold uppercase tracking-widest" style={{color:'var(--color-muted)'}}>Log Today</p>
         <ChipSelect options={TAG_OPTIONS} selected={tags} onChange={next=>{setTags(next);log('tags',next)}} />
         <MoodPicker mood={mood} feltEnergy={feltEnergy}
           onMoodChange={v=>{setMood(v);log('subjective',{mood:v})}}
           onEnergyChange={v=>{setFeltEnergy(v);log('subjective',{felt_energy:v})}} />
         <div className="flex items-center gap-2">
-          <input type="number" placeholder="Weight (kg)" value={weight} onChange={e=>setWeight(e.target.value)}
+          <input type="number" placeholder="Weight" value={weight} onChange={e=>setWeight(e.target.value)}
             onBlur={()=>weight&&log('weight',{kg:parseFloat(weight)})}
-            className="flex-1 px-3 py-2 rounded-xl text-sm outline-none"
-            style={{background:'var(--color-surface)',color:'var(--color-text)',border:'1px solid #30363d'}} />
+            className="flex-1 px-3 py-2.5 rounded-xl text-sm outline-none"
+            style={{background:'var(--color-surface)',color:'var(--color-text)',border:'1px solid var(--color-border)'}} />
           <span className="text-sm" style={{color:'var(--color-muted)'}}>kg</span>
         </div>
       </section>
