@@ -119,11 +119,20 @@ export default function Today({ active = true }) {
 
       <StreakStrip streaks={weekly?.streaks} weekly={weekly?.week} />
 
-      {/* Lifestyle context chips: daylight + mindful */}
-      {(data?.daylight?.minutes != null || data?.mindful?.minutes != null) && (
-        <div className="flex gap-2">
+      {/* Raw lifestyle metrics shown as chips so they're not confused with pillar scores */}
+      {(data?.movement?.steps != null || data?.daylight?.minutes != null || data?.mindful?.minutes != null) && (
+        <div className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1">
+          {data?.movement?.steps != null && (
+            <div className="card shrink-0 px-3 py-2.5 flex items-center gap-2.5 min-w-[100px]">
+              <span className="text-base">🚶</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] uppercase tracking-wider" style={{color:'var(--color-muted)'}}>Steps</p>
+                <p className="text-sm font-bold leading-tight tabular-nums">{data.movement.steps.toLocaleString()}</p>
+              </div>
+            </div>
+          )}
           {data?.daylight?.minutes != null && (
-            <div className="card flex-1 px-3 py-2.5 flex items-center gap-2.5">
+            <div className="card shrink-0 px-3 py-2.5 flex items-center gap-2.5 min-w-[100px]">
               <span className="text-base">☀️</span>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] uppercase tracking-wider" style={{color:'var(--color-muted)'}}>Daylight</p>
@@ -132,7 +141,7 @@ export default function Today({ active = true }) {
             </div>
           )}
           {data?.mindful?.minutes != null && (
-            <div className="card flex-1 px-3 py-2.5 flex items-center gap-2.5">
+            <div className="card shrink-0 px-3 py-2.5 flex items-center gap-2.5 min-w-[100px]">
               <span className="text-base">🧘</span>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] uppercase tracking-wider" style={{color:'var(--color-muted)'}}>Mindful</p>
