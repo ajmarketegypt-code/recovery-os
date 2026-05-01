@@ -7,9 +7,9 @@ export default function Ring({ score, color, size = 80, strokeWidth = 8 }) {
   const offset = circumference * (1 - pct / 100)
   return (
     <svg width={size} height={size} className="block -rotate-90">
-      <circle cx={cx} cy={cx} r={r} fill="none" stroke="#30363d" strokeWidth={strokeWidth} />
+      <circle cx={cx} cy={cx} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={strokeWidth} />
       <motion.circle cx={cx} cy={cx} r={r} fill="none"
-        stroke={score == null ? '#30363d' : color} strokeWidth={strokeWidth} strokeLinecap="round"
+        stroke={score == null ? 'rgba(255,255,255,0.08)' : color} strokeWidth={strokeWidth} strokeLinecap="round"
         strokeDasharray={circumference}
         initial={{ strokeDashoffset: circumference }} animate={{ strokeDashoffset: offset }}
         transition={{ type: 'spring', stiffness: 80, damping: 20, delay: 0.1 }} />

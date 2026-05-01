@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useHealth } from '../hooks/useHealth.js'
+import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
 import { PILLAR_CONFIGS } from '../components/pillars/pillarConfigs.js'
 import Pillar from '../components/pillars/Pillar.jsx'
 import PillarDetail from '../components/pillars/PillarDetail.jsx'
@@ -38,7 +39,8 @@ function BriefCard({ brief }) {
 }
 
 export default function Today() {
-  const { data, brief } = useHealth()
+  const { data, brief, refresh } = useHealth()
+  const refreshing = usePullToRefresh(refresh)
   const [detail, setDetail] = useState(null)
   const [tags, setTags] = useState([])
   useEffect(() => { if (data?.tags) setTags(data.tags) }, [data?.tags])
@@ -50,6 +52,12 @@ export default function Today() {
   const d = new Date()
   return (
     <div className="px-4 pt-14 pb-4 space-y-5 max-w-md mx-auto">
+      {refreshing && (
+        <div className="flex justify-center py-1">
+          <div className="w-5 h-5 rounded-full border-2 animate-spin"
+            style={{borderColor:'var(--color-accent)',borderTopColor:'transparent'}} />
+        </div>
+      )}
       <div className="space-y-0.5">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{color:'var(--color-accent)'}}>
           {DAYS[d.getDay()]} · {MONTHS[d.getMonth()]} {d.getDate()}

@@ -8,9 +8,11 @@ export default function ChipSelect({ options, selected=[], onChange }) {
         return (
           <motion.button key={opt.id} onClick={()=>toggle(opt.id)} whileTap={{scale:0.9}} layout
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
-            style={{background:active?'var(--color-accent)':'var(--color-surface)',
-                    color:active?'#0d1117':'var(--color-muted)',
-                    border:`1px solid ${active?'var(--color-accent)':'#30363d'}`}}>
+            style={{
+              background: active ? 'var(--color-accent)' : 'var(--color-surface)',
+              color: active ? 'var(--color-bg)' : 'var(--color-muted)',
+              border: `1px solid ${active ? 'var(--color-accent)' : 'var(--color-border)'}`
+            }}>
             {opt.emoji} {opt.label}
           </motion.button>
         )
