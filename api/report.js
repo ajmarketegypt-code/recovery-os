@@ -29,14 +29,26 @@ export default async function handler(req) {
     }))
   }))
 
+  // Cost guard: skip if the week is empty (no real sleep/hrv on any day)
+  const hasAnyData = week_data.some(d => d.sleep || d.hrv?.hrv_ms)
+  if (!hasAnyData) {
+    return new Response(JSON.stringify({
+      skipped: true,
+      reason: 'no_data',
+      message: 'No data this week — connect Apple Watch to get your weekly report.',
+    }), { headers: { 'content-type': 'application/json' } })
+  }
+
   const settings = await kv.get('settings')
   const { system, messages } = buildReportPrompt({ week_data, name:settings?.name||process.env.USER_NAME||'Ahmed' })
   let report
   try {
+    // Switched from claude-opus-4-5 → claude-sonnet-4-5: ~80% cheaper for ~equal report quality
     await withAIBudget(kv,'report',COST_ESTIMATES.report, async () => {
-      const r = await anthropic.messages.create({model:'claude-opus-4-5',max_tokens:1000,system,messages})
+      const r = await anthropic.messages.create({model:'claude-sonnet-4-5',max_tokens:1000,system,messages})
       report = JSON.parse(r.content[0].text)
-      return Math.round((r.usage.input_tokens*0.015+r.usage.output_tokens*0.075)/10)
+      // Sonnet pricing: $0.003/1K input, $0.015/1K output (cents/1K = ×0.1 of tokens-cost dollars)
+      return Math.round((r.usage.input_tokens*0.003+r.usage.output_tokens*0.015)/10)
     })
   } catch(err) {
     if (err.constructor.name==='OverBudgetError') return new Response(JSON.stringify({error:'budget_exceeded'}),{status:402,headers:{'content-type':'application/json'}})

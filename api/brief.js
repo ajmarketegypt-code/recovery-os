@@ -18,6 +18,16 @@ export default async function handler(req) {
     getHealthData(today,'sleep'), getHealthData(today,'hrv'), getHealthData(today,'movement'),
     getHealthData(today,'energy'), getHealthData(today,'tags'),
   ])
+
+  // Cost guard: don't burn Claude tokens generating a brief about nothing.
+  // Need at least sleep OR hrv data to produce anything meaningful.
+  if (!sleep && !hrv?.hrv_ms) {
+    return new Response(JSON.stringify({
+      skipped: true,
+      reason: 'no_data',
+      message: 'No sleep or HRV data yet — connect Apple Watch to get your daily brief.',
+    }), { headers: { 'content-type': 'application/json' } })
+  }
   const baseline = await getHRVBaseline()
   const baselineStats = computeBaselineStats(baseline?.samples??[])
   const settings = await kv.get('settings')

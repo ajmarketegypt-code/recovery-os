@@ -21,6 +21,17 @@ const TAG_OPTIONS = [
 ]
 
 function BriefCard({ brief }) {
+  // Brief intentionally skipped — show a clear placeholder, no spinner
+  if (brief?.skipped) {
+    return (
+      <div className="card p-4">
+        <p className="text-sm font-semibold mb-1">Daily brief</p>
+        <p className="text-xs leading-relaxed" style={{color:'var(--color-muted)'}}>
+          {brief.message || 'Connect Apple Watch to get your daily brief.'}
+        </p>
+      </div>
+    )
+  }
   if (!brief?.headline) return <div className="card h-28 animate-pulse" />
   const rc = { 'Train hard':'var(--color-accent)', 'Rest':'var(--color-danger)' }[brief.recommendation]||'var(--color-warning)'
   return (
