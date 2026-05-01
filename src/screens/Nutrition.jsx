@@ -28,7 +28,7 @@ function MacroBar({ label, value, max, color }) {
   )
 }
 
-export default function Nutrition() {
+export default function Nutrition({ active = true }) {
   const [nutrition, setNutrition] = useState(null)
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(null)
@@ -38,21 +38,25 @@ export default function Nutrition() {
   const fileRef = useRef()
 
   const fetchData = useCallback(async () => {
+    // Hard timeout — never let the screen hang waiting on a slow API
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
     try {
-      const r = await fetch('/api/today')
+      const r = await fetch('/api/today', { signal: controller.signal })
       if (!r.ok) throw new Error(`HTTP ${r.status}`)
       const d = await r.json()
       setNutrition(d.nutrition)
       setError(null)
     } catch (e) {
-      setError(e.message || 'Failed to load')
+      setError(e.name === 'AbortError' ? 'Request timed out' : (e.message || 'Failed to load'))
     } finally {
+      clearTimeout(timeout)
       setLoaded(true)
     }
   }, [])
 
   useEffect(()=>{ fetchData() }, [fetchData])
-  const { pullY, refreshing, threshold } = usePullToRefresh(fetchData)
+  const { pullY, refreshing, threshold } = usePullToRefresh(fetchData, active)
 
   const handleFile = async e => {
     const file = e.target.files?.[0]; if (!file) return

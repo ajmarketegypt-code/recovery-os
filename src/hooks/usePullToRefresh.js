@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 const THRESHOLD = 60   // pixels of damped pull required to trigger refresh
 const MAX_PULL  = 120  // visual cap
 
-export function usePullToRefresh(onRefresh) {
+export function usePullToRefresh(onRefresh, enabled = true) {
   const [pullY, setPullY] = useState(0)
   const [refreshing, setRefreshing] = useState(false)
   const startY = useRef(null)
@@ -14,6 +14,11 @@ export function usePullToRefresh(onRefresh) {
   useEffect(() => { refreshingRef.current = refreshing }, [refreshing])
 
   useEffect(() => {
+    if (!enabled) {
+      // Reset state when disabled (e.g., user switched tabs mid-pull)
+      setPullY(0); startY.current = null; currentY.current = 0; dragging.current = false
+      return
+    }
     const atTop = () => (window.scrollY || document.documentElement.scrollTop || 0) <= 0
 
     const onStart = e => {
@@ -62,7 +67,7 @@ export function usePullToRefresh(onRefresh) {
       document.removeEventListener('touchend',   onEnd)
       document.removeEventListener('touchcancel', onEnd)
     }
-  }, [onRefresh])
+  }, [onRefresh, enabled])
 
   return { pullY, refreshing, threshold: THRESHOLD }
 }

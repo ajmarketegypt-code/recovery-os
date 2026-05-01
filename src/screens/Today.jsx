@@ -52,9 +52,9 @@ function BriefCard({ brief }) {
   )
 }
 
-export default function Today() {
+export default function Today({ active = true }) {
   const { data, brief, error, refresh } = useHealth()
-  const { pullY, refreshing, threshold } = usePullToRefresh(refresh)
+  const { pullY, refreshing, threshold } = usePullToRefresh(refresh, active)
   const online = useOnline()
   const [detail, setDetail] = useState(null)
   const [tags, setTags] = useState([])

@@ -49,7 +49,7 @@ export default function App() {
           <div key={t} style={{ display: isActive ? 'block' : 'none' }}>
             {/* Per-screen Suspense — loading one screen doesn't blank the others */}
             <Suspense fallback={isActive ? <Spinner /> : null}>
-              <Screen />
+              <Screen active={isActive} />
             </Suspense>
           </div>
         )

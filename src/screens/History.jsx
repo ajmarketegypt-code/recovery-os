@@ -44,7 +44,7 @@ function PillarChart({ cfg, data }) {
   )
 }
 
-export default function History() {
+export default function History({ active = true }) {
   const [series, setSeries] = useState({})  // {pillarId: [{date, score}, ...]}
   const [report, setReport] = useState(null)
 
@@ -61,7 +61,7 @@ export default function History() {
   }, [])
 
   useEffect(() => { fetchAll() }, [fetchAll])
-  const { pullY, refreshing, threshold } = usePullToRefresh(fetchAll)
+  const { pullY, refreshing, threshold } = usePullToRefresh(fetchAll, active)
 
   return (
     <div className="px-4 pt-14 pb-4 space-y-4 max-w-md mx-auto"
