@@ -5,6 +5,7 @@ const Today     = lazy(() => import('./screens/Today.jsx'))
 const History   = lazy(() => import('./screens/History.jsx'))
 const Nutrition = lazy(() => import('./screens/Nutrition.jsx'))
 const Settings  = lazy(() => import('./screens/Settings.jsx'))
+const TABS = ['today','history','nutrition','settings']
 const SCREEN = { today:Today, history:History, nutrition:Nutrition, settings:Settings }
 
 export default function App() {
@@ -18,11 +19,17 @@ export default function App() {
       <Setup onComplete={() => { localStorage.setItem('setup_complete','true'); setSetupDone(true) }} />
     </Suspense>
   )
-  const Screen = SCREEN[tab]
   return (
     <div className="min-h-screen pb-20">
       <Suspense fallback={<div className="flex items-center justify-center h-screen" style={{color:'var(--color-muted)'}}>Loading</div>}>
-        <Screen />
+        {TABS.map(t => {
+          const Screen = SCREEN[t]
+          return (
+            <div key={t} style={{ display: t === tab ? 'block' : 'none' }}>
+              <Screen />
+            </div>
+          )
+        })}
       </Suspense>
       <TabBar active={tab} onChange={setTab} />
     </div>
