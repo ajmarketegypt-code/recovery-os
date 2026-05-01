@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { PILLAR_CONFIGS } from '../components/pillars/pillarConfigs.js'
 import Sparkline from '../components/ui/Sparkline.jsx'
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
+import { useBrief } from '../hooks/useBrief.js'
 import PullIndicator from '../components/ui/PullIndicator.jsx'
+import MiniBriefBanner from '../components/ui/MiniBriefBanner.jsx'
 
 const ALL_SERIES = [
   ...PILLAR_CONFIGS,
@@ -62,16 +64,30 @@ export default function History({ active = true }) {
 
   useEffect(() => { fetchAll() }, [fetchAll])
   const { pullY, refreshing, threshold } = usePullToRefresh(fetchAll, active)
+  const brief = useBrief(active)
 
   return (
     <div className="px-4 pt-14 pb-4 space-y-4 max-w-md mx-auto"
       style={{ transform: `translateY(${pullY * 0.5}px)`, transition: pullY === 0 ? 'transform 0.2s' : 'none' }}>
       <PullIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
 
+      <MiniBriefBanner brief={brief} />
+
       <div className="space-y-0.5 mb-1">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{color:'var(--color-accent)'}}>30 days</p>
         <h1 className="text-3xl font-black tracking-tight">History</h1>
       </div>
+
+      {/* Weekly insight from /api/report — surfaced here instead of buried in a push */}
+      {report?.correlations && (
+        <div className="card p-3 space-y-1"
+          style={{ borderColor: 'var(--color-accent)44' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-widest" style={{color:'var(--color-accent)'}}>
+            Weekly insight
+          </p>
+          <p className="text-sm leading-snug">{report.correlations}</p>
+        </div>
+      )}
 
       {/* Stacked pillar charts */}
       {ALL_SERIES.map(cfg => (

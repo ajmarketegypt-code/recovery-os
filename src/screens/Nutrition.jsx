@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { usePullToRefresh } from '../hooks/usePullToRefresh.js'
+import { useBrief } from '../hooks/useBrief.js'
 import PullIndicator from '../components/ui/PullIndicator.jsx'
+import MiniBriefBanner from '../components/ui/MiniBriefBanner.jsx'
 
 async function resizeImage(file, maxPx=800) {
   return new Promise(resolve => {
@@ -57,6 +59,7 @@ export default function Nutrition({ active = true }) {
 
   useEffect(()=>{ fetchData() }, [fetchData])
   const { pullY, refreshing, threshold } = usePullToRefresh(fetchData, active)
+  const brief = useBrief(active)
 
   const handleFile = async e => {
     const file = e.target.files?.[0]; if (!file) return
@@ -82,6 +85,7 @@ export default function Nutrition({ active = true }) {
     <div className="px-4 pt-14 pb-4 space-y-5 max-w-md mx-auto"
       style={{ transform: `translateY(${pullY * 0.5}px)`, transition: pullY === 0 ? 'transform 0.2s' : 'none' }}>
       <PullIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
+      <MiniBriefBanner brief={brief} />
       <div className="space-y-0.5">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{color:'var(--color-accent)'}}>Today's intake</p>
         <h1 className="text-3xl font-black tracking-tight">Nutrition</h1>
