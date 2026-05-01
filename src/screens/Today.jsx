@@ -19,8 +19,18 @@ const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Satur
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const greeting = () => { const h=new Date().getHours(); return h<12?'Good morning':h<17?'Good afternoon':'Good evening' }
 
-function BriefCard({ brief }) {
+function BriefCard({ brief, onRefresh }) {
   const [expanded, setExpanded] = useState(false)
+  const [regenerating, setRegenerating] = useState(false)
+  const handleRegen = async (e) => {
+    e.stopPropagation()
+    setRegenerating(true)
+    try {
+      await fetch('/api/dev/refresh-brief', { method: 'POST' })
+      await onRefresh?.()
+    } catch (_) {}
+    finally { setRegenerating(false) }
+  }
   if (brief?.skipped) {
     return (
       <div className="card p-4">
@@ -43,9 +53,17 @@ function BriefCard({ brief }) {
     <div className="card p-4 space-y-2 active:opacity-90 transition-opacity"
       onClick={() => hasMore && setExpanded(e => !e)}>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-lg font-bold leading-tight">{brief.headline}</p>
-        <span className="text-xs px-2.5 py-1 rounded-full shrink-0 font-semibold whitespace-nowrap"
-          style={{ background: rc+'20', color: rc }}>{brief.recommendation}</span>
+        <p className="text-lg font-bold leading-tight flex-1">{brief.headline}</p>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button onClick={handleRegen} disabled={regenerating}
+            className="w-6 h-6 rounded-full flex items-center justify-center text-xs active:scale-90 transition-transform"
+            style={{ background:'var(--color-bg)', color:'var(--color-muted)', opacity: regenerating ? 0.5 : 1 }}
+            title="Regenerate brief">
+            <span className={regenerating ? 'animate-spin inline-block' : 'inline-block'}>↻</span>
+          </button>
+          <span className="text-xs px-2.5 py-1 rounded-full font-semibold whitespace-nowrap"
+            style={{ background: rc+'20', color: rc }}>{brief.recommendation}</span>
+        </div>
       </div>
       {brief.sub && (
         <p className="text-sm leading-snug" style={{ color:'var(--color-muted)' }}>{brief.sub}</p>
@@ -146,7 +164,7 @@ export default function Today({ active = true }) {
         </div>
       )}
 
-      <BriefCard brief={brief} />
+      <BriefCard brief={brief} onRefresh={refresh} />
 
       <div className="grid grid-cols-3 gap-3">
         {PILLAR_CONFIGS.map(cfg => (

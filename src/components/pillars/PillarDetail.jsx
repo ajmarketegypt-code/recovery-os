@@ -133,8 +133,34 @@ export default function PillarDetail({ pillarId, data, onClose }) {
           <>
             <div className="rounded-xl p-3" style={{background:data.signal==='green'?'#10b98122':data.signal==='red'?'#ef444422':'#f59e0b22',border:`1px solid ${data.signal==='green'?'var(--color-accent)':data.signal==='red'?'var(--color-danger)':'var(--color-warning)'}`}}>
               <p className="text-sm font-medium">{data.signal==='green'?'Ready to train hard':data.signal==='red'?'Push light today':'Train as planned'}{data.luteal_adjusted&&<span className="text-xs ml-1" style={{color:'var(--color-muted)'}}>(Luteal)</span>}</p>
-              <p className="text-xs mt-1" style={{color:'var(--color-muted)'}}>HRV: {data.hrv_ms}ms · Baseline: {data.baseline?.mean}ms</p>
+              <p className="text-xs mt-1" style={{color:'var(--color-muted)'}}>
+                HRV: {data.hrv_ms}ms
+                {data.baseline?.mean ? ` · Baseline: ${data.baseline.mean}ms` : ''}
+              </p>
             </div>
+
+            {/* Baseline progress — explains why alerts/signals are uncertain early on */}
+            {data.baseline?.regime === 'establishing' && (
+              <div className="rounded-xl p-3 space-y-1.5"
+                style={{background:'var(--color-bg)',border:'1px solid var(--color-border)'}}>
+                <div className="flex items-baseline justify-between">
+                  <p className="text-[10px] uppercase tracking-wider" style={{color:'var(--color-muted)'}}>
+                    Building baseline
+                  </p>
+                  <p className="text-xs tabular-nums font-semibold">
+                    {data.baseline?.n ?? 0}/14 days
+                  </p>
+                </div>
+                <div className="h-1.5 rounded-full overflow-hidden" style={{background:'rgba(255,255,255,0.06)'}}>
+                  <div className="h-full rounded-full transition-all"
+                    style={{ width: `${Math.min(100, ((data.baseline?.n ?? 0) / 14) * 100)}%`, background:'var(--color-accent)' }} />
+                </div>
+                <p className="text-[10px] leading-relaxed" style={{color:'var(--color-muted)'}}>
+                  Need 14 days of HRV readings to establish your personal baseline. Alerts and recovery signals
+                  become trustworthy once this is full.
+                </p>
+              </div>
+            )}
             {/* Recovery extras grid */}
             <div className="grid grid-cols-2 gap-2">
               {data.resting_hr != null && <MetricTile label="Resting HR" value={data.resting_hr} unit="bpm" />}
