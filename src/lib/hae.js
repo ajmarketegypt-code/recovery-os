@@ -145,12 +145,15 @@ export function translateHAE(body, { exerciseGoal = 30, standGoal = 12, moveGoal
       }
 
     } else if (name === 'body_mass' || name === 'weight_body_mass') {
-      // Smart-scale weight (kg). Multiple readings/day → take latest.
+      // Smart-scale weight (kg). Multiple readings/day → take latest by
+      // absolute time (numeric, so mixed-TZ days from travel still order
+      // correctly — string compare on "...+0300" vs "...+0200" would lie).
       const byDay = {}
       for (const p of points) {
         const v = num(p); if (v == null) continue
         const d = dateOnly(p.date)
-        if (!byDay[d] || (p.date && p.date > byDay[d].date)) byDay[d] = { kg: v, date: p.date }
+        const t = p.date ? new Date(p.date.replace(' ', 'T')).getTime() : 0
+        if (!byDay[d] || t > byDay[d].t) byDay[d] = { kg: v, t }
       }
       for (const [d, { kg }] of Object.entries(byDay)) ensure(d).weight_kg = +kg.toFixed(2)
 

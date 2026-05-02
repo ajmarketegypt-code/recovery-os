@@ -122,6 +122,7 @@ export default function Settings() {
   useEffect(()=>{ fetch('/api/settings').then(r=>r.json()).then(setS) },[])
   if (!s) return <div className="flex items-center justify-center h-screen" style={{color:'var(--color-muted)'}}>Loading…</div>
 
+  const prayerOn = s.prayer_reminders_enabled !== false  // default-on
   return (
     <div className="px-4 pt-14 pb-4 space-y-5 max-w-md mx-auto">
       <div className="space-y-0.5">
@@ -156,14 +157,14 @@ export default function Settings() {
           <p className="text-xs" style={{color:'var(--color-danger)'}}>{push.error}</p>
         )}
         <Row label="Prayer reminders">
-          <button onClick={()=>save({prayer_reminders_enabled: !(s.prayer_reminders_enabled !== false)})}
+          <button onClick={()=>save({prayer_reminders_enabled: !prayerOn})}
             className="text-xs px-3 py-1.5 rounded-lg font-semibold"
             style={{
-              background: s.prayer_reminders_enabled !== false ? 'var(--color-accent)' : 'var(--color-surface)',
-              color:      s.prayer_reminders_enabled !== false ? 'var(--color-bg)'     : 'var(--color-muted)',
-              border: `1px solid ${s.prayer_reminders_enabled !== false ? 'var(--color-accent)' : 'var(--color-border)'}`,
+              background: prayerOn ? 'var(--color-accent)' : 'var(--color-surface)',
+              color:      prayerOn ? 'var(--color-bg)'     : 'var(--color-muted)',
+              border: `1px solid ${prayerOn ? 'var(--color-accent)' : 'var(--color-border)'}`,
             }}>
-            {s.prayer_reminders_enabled !== false ? 'On' : 'Off'}
+            {prayerOn ? 'On' : 'Off'}
           </button>
         </Row>
         <Row label="Morning brief">

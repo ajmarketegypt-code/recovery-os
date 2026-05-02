@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv'
-import { getHRVBaseline, isoDate } from '../src/lib/kv.js'
+import { isoDate } from '../src/lib/kv.js'
 import { computeBaselineStats } from '../src/lib/hrv.js'
 import { enrichHRV, computeEnergy, lutealFlag } from '../src/lib/enrich.js'
 
@@ -9,14 +9,14 @@ export default async function handler(req) {
   const date = new URL(req.url).searchParams.get('date') || isoDate()
   const pillars = ['sleep','hrv','strength','movement','energy','nutrition','tags','subjective','weight','daylight','mindful']
 
-  // Single mget collapses 12 round-trips into 1 (was the cause of /api/today
-  // taking 2-3s on cold edge). Settings + baseline run in parallel.
+  // Single mget collapses 14 round-trips into 1 (was the cause of /api/today
+  // taking 2-3s on cold edge). baseline + settings folded in alongside pillars.
   const pillarKeys = pillars.map(p => `health:${date}:${p}`)
-  const [results, baseline, settings] = await Promise.all([
-    kv.mget(...pillarKeys),
-    getHRVBaseline(),
-    kv.get('settings'),
-  ])
+  const allKeys = [...pillarKeys, 'hrv:baseline', 'settings']
+  const allValues = await kv.mget(...allKeys)
+  const results  = allValues.slice(0, pillars.length)
+  const baseline = allValues[pillars.length]
+  const settings = allValues[pillars.length + 1]
 
   const raw = Object.fromEntries(pillars.map((p,i) => [p, results[i]]))
   const luteal = lutealFlag(settings)

@@ -7,9 +7,11 @@
 const ENDPOINT = '/api/log-error'
 
 // Throttle: same-message errors within 5s are dropped to avoid spamming KV
-// when a render loop throws on every frame.
+// when a render loop throws on every frame. Map preserves insertion order,
+// so FIFO eviction at MAX_RECENT bounds memory even under unique-message storms.
 const recent = new Map()
 const COOLDOWN_MS = 5000
+const MAX_RECENT = 50
 
 export function reportError(payload) {
   try {
@@ -18,10 +20,7 @@ export function reportError(payload) {
     const last = recent.get(key)
     if (last && now - last < COOLDOWN_MS) return
     recent.set(key, now)
-    // Prune occasionally
-    if (recent.size > 50) {
-      for (const [k, ts] of recent) if (now - ts > COOLDOWN_MS * 4) recent.delete(k)
-    }
+    while (recent.size > MAX_RECENT) recent.delete(recent.keys().next().value)
 
     const body = JSON.stringify({
       message:   payload?.message ?? 'unknown',

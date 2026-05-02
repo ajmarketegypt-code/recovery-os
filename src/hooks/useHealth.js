@@ -5,6 +5,8 @@ import { useState, useEffect, useCallback } from 'react'
 // (refresh button, brief regen, weight log, check-in changes) dispatch
 // this event; every mounted instance listens and refetches.
 const HEALTH_CHANGED = 'health:data-changed'
+const POLL_MS = 60_000
+const DEBOUNCE_MS = 250
 
 export function notifyHealthChanged() {
   if (typeof window !== 'undefined') {
@@ -40,24 +42,50 @@ export function useHealth(active = true) {
     } catch(_) {}
   }, [])
 
-  const fetchAll = useCallback(() => {
-    fetchToday(); fetchBrief(); fetchWeekly()
-    notifyHealthChanged()
-  }, [fetchToday, fetchBrief, fetchWeekly])
+  // Parallel — these 3 endpoints are independent
+  const fetchAllParallel = useCallback(
+    () => Promise.all([fetchToday(), fetchBrief(), fetchWeekly()]),
+    [fetchToday, fetchBrief, fetchWeekly]
+  )
 
-  // Polling is gated on `active` — don't fire fetches or trigger re-renders
-  // for a tab the user isn't looking at. (One-shot fetch on first activation.)
+  const refresh = useCallback(async () => {
+    await fetchAllParallel()
+    notifyHealthChanged()
+  }, [fetchAllParallel])
+
   useEffect(() => {
     if (!active) return
-    fetchToday(); fetchBrief(); fetchWeekly()
-    const id = setInterval(() => { fetchToday(); fetchBrief(); fetchWeekly() }, 60_000)
-    const onChange = () => { fetchToday(); fetchBrief(); fetchWeekly() }
+
+    fetchAllParallel()
+
+    // Background tabs skip polling — no point burning network on a tab
+    // the user can't see. Foreground returns trigger an immediate refetch.
+    const tick = () => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        fetchAllParallel()
+      }
+    }
+    const id = setInterval(tick, POLL_MS)
+
+    // Debounce HEALTH_CHANGED so a burst (e.g. dismiss + log + refresh in
+    // quick succession) coalesces into one fetch round per hook instance.
+    let pending = null
+    const onChange = () => {
+      if (pending) clearTimeout(pending)
+      pending = setTimeout(() => { pending = null; fetchAllParallel() }, DEBOUNCE_MS)
+    }
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchAllParallel() }
+
     window.addEventListener(HEALTH_CHANGED, onChange)
+    document.addEventListener('visibilitychange', onVisible)
+
     return () => {
       clearInterval(id)
+      if (pending) clearTimeout(pending)
       window.removeEventListener(HEALTH_CHANGED, onChange)
+      document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [active, fetchToday, fetchBrief, fetchWeekly])
+  }, [active, fetchAllParallel])
 
-  return { data, brief, weekly, loading, error, refresh: fetchAll }
+  return { data, brief, weekly, loading, error, refresh }
 }

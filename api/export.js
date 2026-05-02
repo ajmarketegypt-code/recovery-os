@@ -1,60 +1,35 @@
 // Full data export — download every byte of your health data as JSON.
 // GET /api/export → application/json (downloads as health-export-YYYY-MM-DD.json)
 //
-// Insurance against KV loss / project switch / accidental wipe. Dump it
-// monthly into Drive/iCloud and you can replay it back via /api/health-ingest
-// if Upstash ever clears.
+// Insurance against KV loss / project switch / accidental wipe. Push
+// subscription is OMITTED (not just redacted) so re-import via
+// /api/health-ingest won't feed webpush a malformed sub.
 import { kv } from '@vercel/kv'
 import { isoDate } from '../src/lib/kv.js'
+import { scanAll, mgetChunked } from '../src/lib/kv-helpers.js'
 
 export const config = { runtime: 'edge' }
 
 const PATTERNS = ['health:*', 'brief:*', 'report:*', 'prayers:*', 'alerts:*', 'alert:*']
-const SINGLETON_KEYS = ['settings', 'hrv:baseline', 'push:subscription']
-
-// Iterate Upstash SCAN, batched 1000 at a time
-async function scanAll(pattern) {
-  const out = []
-  let cursor = '0', iterations = 0
-  do {
-    const [next, keys] = await kv.scan(cursor, { match: pattern, count: 1000 })
-    out.push(...keys)
-    cursor = String(next)
-    iterations++
-  } while (cursor !== '0' && iterations < 100)  // safety cap
-  return out
-}
+const SINGLETON_KEYS = ['settings', 'hrv:baseline']  // push:subscription deliberately excluded
 
 export default async function handler() {
-  // Find all keys, then mget in chunks (Upstash mget caps around 100/call)
   const groups = await Promise.all(PATTERNS.map(scanAll))
   const allKeys = groups.flat()
 
-  const data = {}
-  const CHUNK = 100
-  for (let i = 0; i < allKeys.length; i += CHUNK) {
-    const slice = allKeys.slice(i, i + CHUNK)
-    const values = await kv.mget(...slice)
-    slice.forEach((k, idx) => { data[k] = values[idx] })
-  }
+  const [values, singletons] = await Promise.all([
+    mgetChunked(allKeys),
+    kv.mget(...SINGLETON_KEYS),
+  ])
 
-  // Singleton keys (separate so the export is self-documenting)
-  const singletons = await kv.mget(...SINGLETON_KEYS)
-  const meta = {}
-  SINGLETON_KEYS.forEach((k, i) => { meta[k] = singletons[i] })
-
-  // Strip the push subscription endpoint URL — it's a credential of sorts
-  if (meta['push:subscription']) {
-    meta['push:subscription'] = { _redacted: true, kept_for_count_only: true }
-  }
+  const data = Object.fromEntries(allKeys.map((k, i) => [k, values[i]]))
+  const meta = Object.fromEntries(SINGLETON_KEYS.map((k, i) => [k, singletons[i]]))
 
   const payload = {
     exported_at: new Date().toISOString(),
     schema_version: 1,
-    counts: {
-      keys: allKeys.length,
-      singletons: SINGLETON_KEYS.length,
-    },
+    note: 'push:subscription intentionally excluded — re-register on import',
+    counts: { keys: allKeys.length, singletons: SINGLETON_KEYS.length },
     singletons: meta,
     data,
   }
