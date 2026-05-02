@@ -194,11 +194,9 @@ export default function Settings() {
 
       <Section title="Developer">
         <p className="text-xs leading-relaxed" style={{color:'var(--color-muted)'}}>
-          Useful for testing without a connected Apple Watch.
+          Real Apple Watch data only — demo seeding has been removed.
         </p>
         <div className="flex flex-wrap gap-2">
-          <DevButton label="Load demo data" tone="accent" busy={busy==='seed'}
-            onClick={()=>callDev('/api/dev/seed', 'seed')} />
           <DevButton label="Test push" busy={busy==='push'}
             onClick={()=>callDev('/api/dev/test-push', 'push')} />
           <DevButton label="Generate report" busy={busy==='report'}
