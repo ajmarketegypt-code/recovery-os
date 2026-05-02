@@ -1,16 +1,18 @@
 {
   "functions": {
-    "api/health-ingest.js": { "maxDuration": 10 },
-    "api/brief.js":         { "maxDuration": 60 },
-    "api/report.js":        { "maxDuration": 60 },
-    "api/vision.js":        { "maxDuration": 60 },
-    "api/cron/morning.js":  { "maxDuration": 60 },
-    "api/cron/evening.js":  { "maxDuration": 15 },
-    "api/cron/weekly.js":   { "maxDuration": 60 }
+    "api/health-ingest.js":        { "maxDuration": 10 },
+    "api/brief.js":                { "maxDuration": 60 },
+    "api/report.js":                { "maxDuration": 60 },
+    "api/vision.js":                { "maxDuration": 60 },
+    "api/cron/morning.js":          { "maxDuration": 60 },
+    "api/cron/evening.js":          { "maxDuration": 15 },
+    "api/cron/weekly.js":           { "maxDuration": 60 },
+    "api/cron/prayer-reminder.js":  { "maxDuration": 15 }
   },
   "crons": [
-    { "path": "/api/cron/morning", "schedule": "0 7 * * *"  },
-    { "path": "/api/cron/evening", "schedule": "0 18 * * *" },
-    { "path": "/api/cron/weekly",  "schedule": "0 19 * * 0" }
+    { "path": "/api/cron/morning",         "schedule": "0 7 * * *"  },
+    { "path": "/api/cron/evening",         "schedule": "0 18 * * *" },
+    { "path": "/api/cron/weekly",          "schedule": "0 19 * * 0" },
+    { "path": "/api/cron/prayer-reminder", "schedule": "*/5 * * * *" }
   ]
 }

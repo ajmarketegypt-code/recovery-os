@@ -2,6 +2,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import { installErrorReporter } from './lib/errorReporter.js'
+
+installErrorReporter()
 
 // When a new SW takes over (after deploy), the in-memory bundle is stale —
 // references chunks that no longer exist on the server. Reload once to fetch

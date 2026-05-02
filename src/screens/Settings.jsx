@@ -85,6 +85,40 @@ export default function Settings() {
     } catch (e) { setDevMsg('Network error: ' + e.message) }
     finally { setBusy(null); setTimeout(()=>setDevMsg(null), 4000) }
   }
+
+  // Trigger a browser download of the full data export. Done via anchor click
+  // rather than callDev() because the response is a file, not JSON.
+  const downloadExport = async () => {
+    setBusy('export'); setDevMsg(null)
+    try {
+      const r = await fetch('/api/export')
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const blob = await r.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `health-export-${new Date().toISOString().slice(0,10)}.json`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(a.href)
+      setDevMsg(`Downloaded (${(blob.size/1024).toFixed(1)} KB)`)
+    } catch (e) { setDevMsg('Export failed: ' + e.message) }
+    finally { setBusy(null); setTimeout(()=>setDevMsg(null), 4000) }
+  }
+
+  const viewErrors = async () => {
+    setBusy('errors'); setDevMsg(null)
+    try {
+      const r = await fetch('/api/log-error')
+      const j = await r.json()
+      if (j.count === 0) { setDevMsg('No errors logged in last 30 days ✓'); return }
+      const latest = j.errors[0]
+      const t = new Date(latest.received_at).toLocaleString()
+      setDevMsg(`${j.count} error(s). Latest: ${latest.message} (${t})`)
+      console.group('[Health app errors]')
+      j.errors.forEach((e,i) => console.log(`#${i+1}`, e))
+      console.groupEnd()
+    } catch (e) { setDevMsg('Fetch failed: ' + e.message) }
+    finally { setBusy(null); setTimeout(()=>setDevMsg(null), 12_000) }
+  }
   useEffect(()=>{ fetch('/api/settings').then(r=>r.json()).then(setS) },[])
   if (!s) return <div className="flex items-center justify-center h-screen" style={{color:'var(--color-muted)'}}>Loading…</div>
 
@@ -121,6 +155,17 @@ export default function Settings() {
         {push.error && (
           <p className="text-xs" style={{color:'var(--color-danger)'}}>{push.error}</p>
         )}
+        <Row label="Prayer reminders">
+          <button onClick={()=>save({prayer_reminders_enabled: !(s.prayer_reminders_enabled !== false)})}
+            className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+            style={{
+              background: s.prayer_reminders_enabled !== false ? 'var(--color-accent)' : 'var(--color-surface)',
+              color:      s.prayer_reminders_enabled !== false ? 'var(--color-bg)'     : 'var(--color-muted)',
+              border: `1px solid ${s.prayer_reminders_enabled !== false ? 'var(--color-accent)' : 'var(--color-border)'}`,
+            }}>
+            {s.prayer_reminders_enabled !== false ? 'On' : 'Off'}
+          </button>
+        </Row>
         <Row label="Morning brief">
           <input type="time" value={s.notification_times.morning}
             onChange={e=>save({notification_times:{...s.notification_times,morning:e.target.value}})}
@@ -203,6 +248,8 @@ export default function Settings() {
             onClick={()=>callDev('/api/dev/generate-report', 'report')} />
           <DevButton label="Run morning cron" busy={busy==='cron'}
             onClick={()=>callDev('/api/dev/trigger-cron', 'cron')} />
+          <DevButton label="Export data" tone="accent" busy={busy==='export'} onClick={downloadExport} />
+          <DevButton label="View errors" busy={busy==='errors'} onClick={viewErrors} />
           <DevButton label="Wipe all data" tone="danger" busy={busy==='wipe'}
             onClick={()=>{ if (confirm('Delete all health data? Settings will stay.')) callDev('/api/dev/wipe', 'wipe') }} />
         </div>

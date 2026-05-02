@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { reportError } from '../../lib/errorReporter.js'
 
 // React's standard error boundary. Catches render errors in children
 // and shows a debuggable error UI instead of letting the whole tree
@@ -17,6 +18,11 @@ export default class ErrorBoundary extends Component {
   componentDidCatch(error, info) {
     this.setState({ info })
     console.error('[ErrorBoundary]', error, info?.componentStack)
+    // Ship to server so iPhone-only crashes are visible from desktop
+    reportError({
+      message: `[${this.props.label || 'screen'}] ${error?.name}: ${error?.message}`,
+      stack: (error?.stack || '') + '\n--- componentStack ---\n' + (info?.componentStack || ''),
+    })
 
     // Auto-recover from stale-bundle chunk-load errors. The page is running
     // an old build that references hashed chunks that no longer exist on the
