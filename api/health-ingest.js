@@ -104,6 +104,10 @@ export default async function handler(req) {
     } else if (type === 'mindful' && value != null) {
       await setHealthData(date, 'mindful', { minutes: value })
 
+    } else if (type === 'weight' && value != null) {
+      // Smart-scale weight (kg) — mirrors manual /api/today-log weight POST
+      await setHealthData(date, 'weight', { kg: value, source: 'auto' })
+
     } else if (type === 'body_comp' && data) {
       // Smart-scale body composition (Zepp / similar) — merge with existing
       const existing = await getHealthData(date, 'body_comp') ?? {}

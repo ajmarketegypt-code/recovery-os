@@ -218,6 +218,14 @@ export default function Settings() {
             <li>Header: <code style={{color:'var(--color-text)'}}>X-Ingest-Secret</code> = your INGEST_SECRET value</li>
             <li>Schedule: Hourly + On workout completion</li>
           </ol>
+          <p className="text-[10px] mt-2 leading-relaxed" style={{color:'var(--color-muted)'}}>
+            Enable these metrics in HAE for full coverage:
+            heart_rate_variability, resting_heart_rate, walking_heart_rate_average,
+            apple_sleeping_wrist_temperature, sleep_analysis, respiratory_rate,
+            blood_oxygen_saturation, vo2_max, apple_exercise_time, apple_stand_hour,
+            active_energy, step_count, time_in_daylight, mindful_session,
+            body_mass, body_fat_percentage, lean_body_mass, body_mass_index.
+          </p>
         </Section>
       )}
     </div>
