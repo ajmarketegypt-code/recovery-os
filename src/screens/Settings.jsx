@@ -124,7 +124,7 @@ export default function Settings() {
 
   const prayerOn = s.prayer_reminders_enabled !== false  // default-on
   return (
-    <div className="px-4 pt-14 pb-4 space-y-5 max-w-md mx-auto">
+    <div className="px-4 pb-4 space-y-5 max-w-md mx-auto pt-safe">
       <div className="space-y-0.5">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{color:'var(--color-accent)'}}>Preferences</p>
         <h1 className="text-3xl font-black tracking-tight">Settings</h1>

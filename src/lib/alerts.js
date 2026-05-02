@@ -61,6 +61,29 @@ export function rhrElevatedAlert(hrvHistory) {
   }
 }
 
+// 5) Watch hasn't been worn — last HRV reading is >24h old but data
+// existed in the previous week (so we don't trip during the cold-start
+// "haven't connected the Watch yet" period).
+export function wearWatchAlert(hrvHistory) {
+  if (!hrvHistory?.length) return null
+  // Find most recent day that has HRV data
+  let lastIdx = -1
+  for (let i = hrvHistory.length - 1; i >= 0; i--) {
+    if (hrvHistory[i]?.hrv_ms != null) { lastIdx = i; break }
+  }
+  if (lastIdx === -1) return null  // never had data — not the right alert
+  // Days between last reading and "today" (last array slot)
+  const gap = (hrvHistory.length - 1) - lastIdx
+  if (gap < 1) return null  // had HRV today, all good
+  if (gap > 7) return null  // too old — different problem (HAE broken, on vacation, etc.)
+  return {
+    type: 'wear_watch',
+    title: 'Watch not synced',
+    body: `No HRV reading for ${gap} day${gap === 1 ? '' : 's'}. Wear it to sleep so recovery scoring stays accurate.`,
+    url: '/',
+  }
+}
+
 // 4) Today's brief recommendation flipped to Rest from anything else
 export function briefFlipAlert(briefToday, briefYesterday) {
   if (briefToday?.skipped || !briefToday?.recommendation) return null
@@ -83,6 +106,7 @@ export function detectAlerts({ hrvHistory, sleepHistory, baseline, briefToday, b
     sleepDebtAlert(sleepHistory),
     rhrElevatedAlert(hrvHistory),
     briefFlipAlert(briefToday, briefYesterday),
+    wearWatchAlert(hrvHistory),
   ].filter(Boolean)
   return candidates.filter(a => !firedRecently.has(a.type))
 }

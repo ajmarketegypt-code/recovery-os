@@ -146,7 +146,7 @@ export default function Today({ active = true }) {
   const d = new Date()
 
   return (
-    <div className="px-4 pt-14 pb-4 space-y-5 max-w-md mx-auto"
+    <div className="px-4 pb-4 space-y-5 max-w-md mx-auto pt-safe"
       style={{ transform: `translateY(${pullY * 0.5}px)`, transition: pullY === 0 ? 'transform 0.2s' : 'none' }}>
       <PullIndicator pullY={pullY} refreshing={refreshing} threshold={threshold} />
       <StatusBanner message={!online ? "You're offline" : (error ? "Couldn't reach the server" : null)}

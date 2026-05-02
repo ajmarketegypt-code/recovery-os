@@ -1,36 +1,23 @@
 {
   "name": "Health",
   "short_name": "Health",
-  "description": "60-day health rebuild — sleep, strength, energy",
+  "description": "Personal recovery + recomp — sleep, HRV, strength, nutrition",
   "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
-  "background_color": "#080c12",
-  "theme_color": "#10b981",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
+  "background_color": "#080c12",
+  "theme_color": "#080c12",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["health", "lifestyle", "fitness"],
+  "prefer_related_applications": false,
   "icons": [
-    {
-      "src": "/icon-192.png?v=2",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-192.png?v=2",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icon-512.png?v=2",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512.png?v=2",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    { "src": "/icon-192.png?v=2", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-192.png?v=2", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png?v=2", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

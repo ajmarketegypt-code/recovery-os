@@ -47,7 +47,7 @@ export default class ErrorBoundary extends Component {
     if (!this.state.error) return this.props.children
     const e = this.state.error
     return (
-      <div className="px-4 pt-14 pb-4 space-y-4 max-w-md mx-auto">
+      <div className="px-4 pb-4 space-y-4 max-w-md mx-auto pt-safe">
         <div className="space-y-1">
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--color-danger)' }}>
             {this.props.label || 'Screen'} crashed

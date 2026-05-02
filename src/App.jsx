@@ -42,7 +42,7 @@ export default function App() {
   )
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
       {[...visited].map(t => {
         const Screen = SCREEN[t]
         const isActive = t === tab

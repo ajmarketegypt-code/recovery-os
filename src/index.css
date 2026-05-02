@@ -48,3 +48,11 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 }
 .sheet { animation: sheet-in 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
 .sheet-out { animation: sheet-in 0.25s cubic-bezier(0.7, 0, 0.84, 0) reverse; }
+
+/* iPhone notch + home-indicator safe-area helpers. viewport-fit=cover in
+   index.html lets the page extend under both bars; these utilities keep
+   actual content inside the safe area. */
+/* Safe area + 1rem of breathing room below the notch / above the home indicator */
+.pt-safe { padding-top: calc(env(safe-area-inset-top) + 1rem); }
+.pb-safe { padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem); }
+.h-safe-bottom { height: env(safe-area-inset-bottom); }

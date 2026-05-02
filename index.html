@@ -5,11 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Health</title>
     <link rel="manifest" href="/manifest.json" />
+    <!-- Match status bar to app background when standalone; accent only when in-browser tab -->
+    <meta name="theme-color" content="#080c12" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#10b981" />
+    <meta name="color-scheme" content="dark" />
+    <!-- Block iOS Safari from auto-linking phone numbers / dates / addresses -->
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
+    <!-- Modern + iOS-specific standalone webapp tags -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Health" />
     <link rel="apple-touch-icon" sizes="192x192" href="/apple-touch-icon.png?v=2" />
+    <!-- iOS uses manifest background_color for the splash bg + the icon as the splash glyph.
+         For per-device splash PNGs, add <link rel="apple-touch-startup-image" media="..."> here. -->
   </head>
   <body>
     <div id="root"></div>
