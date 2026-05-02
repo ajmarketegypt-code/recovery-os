@@ -10,6 +10,7 @@ import WeightCard from '../components/ui/WeightCard.jsx'
 import PrayerStrip from '../components/ui/PrayerStrip.jsx'
 import VitalsSheet from '../components/ui/VitalsSheet.jsx'
 import AlertBanner from '../components/ui/AlertBanner.jsx'
+import DataMaturity from '../components/ui/DataMaturity.jsx'
 import { useAlerts } from '../hooks/useAlerts.js'
 import { PILLAR_CONFIGS } from '../components/pillars/pillarConfigs.js'
 import Pillar from '../components/pillars/Pillar.jsx'
@@ -165,6 +166,8 @@ export default function Today({ active = true }) {
       )}
 
       <BriefCard brief={brief} onRefresh={refresh} />
+
+      <DataMaturity data={data} weekly={weekly} />
 
       <div className="grid grid-cols-3 gap-3">
         {PILLAR_CONFIGS.map(cfg => (

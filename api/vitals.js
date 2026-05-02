@@ -31,26 +31,30 @@ const round1 = v => v == null ? null : Math.round(v * 10) / 10
 export default async function handler() {
   const today = isoDate()
   const week = Array.from({ length: 7 }, (_, i) => dateNDaysAgo(6 - i))
-  const settings = (await kv.get('settings')) ?? {}
 
-  // Fetch today + last 7 days for each pillar in parallel
-  const [
-    todaySleep, todayHrv, todayMovement, todayDaylight, todayMindful, todayBodyComp,
-    weekSleep, weekHrv, weekMovement, weekDaylight, weekMindful, weekBodyComp,
-  ] = await Promise.all([
-    kv.get(`health:${today}:sleep`),
-    kv.get(`health:${today}:hrv`),
-    kv.get(`health:${today}:movement`),
-    kv.get(`health:${today}:daylight`),
-    kv.get(`health:${today}:mindful`),
-    kv.get(`health:${today}:body_comp`),
-    Promise.all(week.map(d => kv.get(`health:${d}:sleep`))),
-    Promise.all(week.map(d => kv.get(`health:${d}:hrv`))),
-    Promise.all(week.map(d => kv.get(`health:${d}:movement`))),
-    Promise.all(week.map(d => kv.get(`health:${d}:daylight`))),
-    Promise.all(week.map(d => kv.get(`health:${d}:mindful`))),
-    Promise.all(week.map(d => kv.get(`health:${d}:body_comp`))),
+  // Single mget per pillar — collapses ~48 round-trips into 7. Each mget
+  // returns [today, ...week] in order so we can slice cleanly.
+  const datesAll = [today, ...week]
+  const pillarsHere = ['sleep','hrv','movement','daylight','mindful','body_comp']
+  const allKeys = pillarsHere.flatMap(p => datesAll.map(d => `health:${d}:${p}`))
+
+  const [allValues, settings] = await Promise.all([
+    kv.mget(...allKeys),
+    kv.get('settings').then(s => s ?? {}),
   ])
+
+  // Slice the flat array back into per-pillar groups
+  const perDay = pillarsHere.length
+  const sliceFor = (i) => allValues.slice(i * datesAll.length, (i + 1) * datesAll.length)
+  const [sleepArr, hrvArr, movementArr, daylightArr, mindfulArr, bodyCompArr] =
+    Array.from({ length: perDay }, (_, i) => sliceFor(i))
+
+  const [todaySleep, ...weekSleep] = sleepArr
+  const [todayHrv, ...weekHrv] = hrvArr
+  const [todayMovement, ...weekMovement] = movementArr
+  const [todayDaylight, ...weekDaylight] = daylightArr
+  const [todayMindful, ...weekMindful] = mindfulArr
+  const [todayBodyComp, ...weekBodyComp] = bodyCompArr
 
   const sleepAvg = avgPath(weekSleep, 'total_hours')
   const hrvAvg   = avgPath(weekHrv, 'hrv_ms')

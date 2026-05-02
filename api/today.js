@@ -9,8 +9,11 @@ export default async function handler(req) {
   const date = new URL(req.url).searchParams.get('date') || isoDate()
   const pillars = ['sleep','hrv','strength','movement','energy','nutrition','tags','subjective','weight','daylight','mindful']
 
+  // Single mget collapses 12 round-trips into 1 (was the cause of /api/today
+  // taking 2-3s on cold edge). Settings + baseline run in parallel.
+  const pillarKeys = pillars.map(p => `health:${date}:${p}`)
   const [results, baseline, settings] = await Promise.all([
-    Promise.all(pillars.map(p => kv.get(`health:${date}:${p}`))),
+    kv.mget(...pillarKeys),
     getHRVBaseline(),
     kv.get('settings'),
   ])

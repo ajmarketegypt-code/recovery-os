@@ -32,20 +32,22 @@ export default async function handler() {
   const week = last7Days()
   const month = last90Days()
 
-  // Fetch what we need in parallel
+  // Single mget per pillar — collapses ~156 sequential round-trips into 9.
+  const weekKeys = (p) => week.map(d => `health:${d}:${p}`)
+  const monthKeys = (p) => month.map(d => `health:${d}:${p}`)
   const [
     sleepWeek, strengthWeek, movementWeek, daylightWeek, hrvWeek,
     sleepMonth, strengthMonth, hrvMonth, weightMonth,
   ] = await Promise.all([
-    Promise.all(week.map(d => kv.get(`health:${d}:sleep`))),
-    Promise.all(week.map(d => kv.get(`health:${d}:strength`))),
-    Promise.all(week.map(d => kv.get(`health:${d}:movement`))),
-    Promise.all(week.map(d => kv.get(`health:${d}:daylight`))),
-    Promise.all(week.map(d => kv.get(`health:${d}:hrv`))),
-    Promise.all(month.map(d => kv.get(`health:${d}:sleep`))),
-    Promise.all(month.map(d => kv.get(`health:${d}:strength`))),
-    Promise.all(month.map(d => kv.get(`health:${d}:hrv`))),
-    Promise.all(month.map(d => kv.get(`health:${d}:weight`))),
+    kv.mget(...weekKeys('sleep')),
+    kv.mget(...weekKeys('strength')),
+    kv.mget(...weekKeys('movement')),
+    kv.mget(...weekKeys('daylight')),
+    kv.mget(...weekKeys('hrv')),
+    kv.mget(...monthKeys('sleep')),
+    kv.mget(...monthKeys('strength')),
+    kv.mget(...monthKeys('hrv')),
+    kv.mget(...monthKeys('weight')),
   ])
 
   // Weekly progress (X / target)

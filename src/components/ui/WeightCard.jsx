@@ -78,6 +78,14 @@ export default function WeightCard({ weight, onLog }) {
         </div>
       )}
 
+      {/* Empty state — invite first weigh-in with context */}
+      {today == null && (!weight?.series || weight.series.length === 0) && (
+        <p className="text-xs leading-relaxed" style={{ color:'var(--color-muted)' }}>
+          Log your weight 3-4× this week (after waking, before food) so we can show
+          fat-vs-muscle pace.
+        </p>
+      )}
+
       {/* Inline log */}
       <div className="flex items-center gap-2">
         <input type="number" inputMode="decimal" placeholder="Log today's weight" value={input}
