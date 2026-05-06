@@ -7,6 +7,31 @@ import { isHAEFormat, translateHAE } from '../src/lib/hae.js'
 
 const INGEST_SECRET = process.env.INGEST_SECRET
 
+// Reject obviously bad values from sensor glitches / HAE quirks.
+// Generous bounds — we only catch nonsense (negative sleep, 1000bpm HRV).
+function isPlausible(type, value, data) {
+  const num = (v) => typeof v === 'number' && Number.isFinite(v)
+  switch (type) {
+    case 'hrv':         return num(value) && value > 5    && value < 250
+    case 'resting_hr':  return num(value) && value > 25   && value < 150
+    case 'weight':      return num(value) && value > 25   && value < 300  // kg
+    case 'daylight':
+    case 'mindful':     return num(value) && value >= 0   && value < 1440 // minutes/day
+    case 'sleep':       return data && (data.total_hours == null
+                          || (num(data.total_hours) && data.total_hours >= 0 && data.total_hours <= 16))
+    case 'workout':     return data && (data.duration_min == null
+                          || (num(data.duration_min) && data.duration_min > 0 && data.duration_min < 600))
+    case 'body_comp':   return data && (
+                          (data.body_fat_pct == null || (num(data.body_fat_pct) && data.body_fat_pct > 2 && data.body_fat_pct < 60))
+                       && (data.lean_mass_kg == null || (num(data.lean_mass_kg) && data.lean_mass_kg > 20 && data.lean_mass_kg < 200))
+                       && (data.bmi == null || (num(data.bmi) && data.bmi > 10 && data.bmi < 60)))
+    case 'activity_rings':
+    case 'recovery_extra':
+    case 'fitness_extra': return !!data
+    default: return true
+  }
+}
+
 // Lightweight hash for idempotency key
 async function hashKey(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
@@ -56,6 +81,11 @@ export default async function handler(req) {
   for (const metric of metrics) {
     const { type, date, value, data } = metric
     if (!type || !date) { skipped++; continue }
+
+    // Sanity-clamp: HAE / sensor glitches occasionally emit absurd values
+    // (sleep -2h, HRV 999999, weight 0). Reject obvious nonsense at the
+    // boundary instead of polluting scores. Range is generous on purpose.
+    if (!isPlausible(type, value, data)) { skipped++; continue }
 
     // Idempotency check
     const idKey = `ingest:seen:${await hashKey(type + date + JSON.stringify(value ?? data) + exportedAt)}`
