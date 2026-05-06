@@ -1,6 +1,6 @@
 // Bust today's brief cache so the next /api/brief call regenerates fresh.
 // POST /api/dev/refresh-brief
-import { kv } from '@vercel/kv'
+import { kv } from '../../src/lib/kv.js'
 import { isoDate } from '../../src/lib/kv.js'
 
 export const config = { runtime: 'edge' }

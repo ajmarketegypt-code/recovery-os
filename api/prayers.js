@@ -1,6 +1,6 @@
 // Daily prayer times + completion tracking.
 // GET /api/prayers?date=YYYY-MM-DD → { times, completed, location }
-import { kv } from '@vercel/kv'
+import { kv } from '../src/lib/kv.js'
 import { isoDate } from '../src/lib/kv.js'
 import { getPrayerTimes, prayerLocation } from '../src/lib/prayers.js'
 

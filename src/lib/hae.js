@@ -248,6 +248,7 @@ export function translateHAE(body, { exerciseGoal = 30, standGoal = 12, moveGoal
       type: 'workout', date,
       data: {
         type: w.name || 'Workout',
+        start: w.start || w.date || null,        // for dedup on retry
         duration_min: w.duration ? Math.round(w.duration / 60) : null,
         calories: num(w.activeEnergyBurned) ?? num(w.calories) ?? null,
       },

@@ -1,6 +1,6 @@
 // Returns the last raw payload received by /api/health-ingest.
 // GET /api/dev/last-ingest
-import { kv } from '@vercel/kv'
+import { kv } from '../../src/lib/kv.js'
 export const config = { runtime: 'edge' }
 export default async function handler() {
   const data = await kv.get('debug:last-ingest')

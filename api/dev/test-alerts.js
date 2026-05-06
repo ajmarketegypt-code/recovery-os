@@ -1,6 +1,6 @@
 // Run alert detection without sending pushes — for debugging.
 // GET /api/dev/test-alerts → { candidates, suppressed, would_fire }
-import { kv } from '@vercel/kv'
+import { kv } from '../../src/lib/kv.js'
 import { isoDate, getHRVBaseline, getBrief } from '../../src/lib/kv.js'
 import { detectAlerts, hrvDropAlert, sleepDebtAlert, rhrElevatedAlert, briefFlipAlert, SUPPRESS_DAYS_VALUE } from '../../src/lib/alerts.js'
 

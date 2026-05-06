@@ -1,7 +1,7 @@
 // Shared prayer-time fetcher. Used by both the public /api/prayers endpoint
 // and the prayer-reminder cron — collapses an internal HTTP round-trip and
 // removes copy-pasted defaults / cache-key shape.
-import { kv } from '@vercel/kv'
+import { kv } from './kv.js'
 
 export const PRAYERS = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
 

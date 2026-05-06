@@ -7,7 +7,7 @@
 //
 // GET  /api/alerts → { alerts: [{ type, title, body, fired_at }] }
 // POST /api/alerts { type, action: 'dismiss' } → removes one
-import { kv } from '@vercel/kv'
+import { kv } from '../src/lib/kv.js'
 import { isoDate } from '../src/lib/kv.js'
 import { wearWatchAlert } from '../src/lib/alerts.js'
 

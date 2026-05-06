@@ -1,6 +1,6 @@
 // Wipe all health data, briefs, reports, baseline. Settings stay.
 // POST /api/dev/wipe
-import { kv } from '@vercel/kv'
+import { kv } from '../../src/lib/kv.js'
 import { deleteByPattern } from '../../src/lib/kv-helpers.js'
 
 export const config = { runtime: 'edge' }

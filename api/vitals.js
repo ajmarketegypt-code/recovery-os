@@ -1,6 +1,6 @@
 // All-vitals view — one fetch returns every metric with target + 7-day trend.
 // GET /api/vitals
-import { kv } from '@vercel/kv'
+import { kv } from '../src/lib/kv.js'
 import { isoDate } from '../src/lib/kv.js'
 
 export const config = { runtime: 'edge' }

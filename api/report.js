@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { kv } from '@vercel/kv'
+import { kv } from '../src/lib/kv.js'
 import { getReport, setReport, isoWeek } from '../src/lib/kv.js'
 import { buildReportPrompt } from '../src/lib/prompts.js'
 import { withAIBudget, COST_ESTIMATES } from '../src/lib/cost.js'

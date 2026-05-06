@@ -9,7 +9,8 @@
     "api/cron/weekly.js":           { "maxDuration": 60 },
     "api/cron/prayer-reminder.js":  { "maxDuration": 15 },
     "api/export.js":                { "maxDuration": 30 },
-    "api/log-error.js":             { "maxDuration": 5 }
+    "api/log-error.js":             { "maxDuration": 5 },
+    "api/health.js":                { "maxDuration": 5 }
   },
   "crons": [
     { "path": "/api/cron/morning", "schedule": "0 7 * * *"  },

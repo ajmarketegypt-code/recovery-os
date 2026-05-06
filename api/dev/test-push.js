@@ -1,7 +1,7 @@
 // Trigger a test push notification to the registered subscription.
 // POST /api/dev/test-push
 import webpush from 'web-push'
-import { kv } from '@vercel/kv'
+import { kv } from '../../src/lib/kv.js'
 export const config = { runtime: 'nodejs' }
 
 webpush.setVapidDetails(

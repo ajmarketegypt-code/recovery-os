@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv'
+import { kv } from '../src/lib/kv.js'
 import { isoMonth } from '../src/lib/kv.js'
 export const config = { runtime:'edge' }
 const DEFAULTS = {name:'Ahmed',notification_times:{morning:'07:00',evening:'18:00'},

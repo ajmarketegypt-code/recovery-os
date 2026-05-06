@@ -1,6 +1,6 @@
 // Weekly aggregates + streaks for the Today screen.
 // Cheap KV reads (last 90 days max), no AI calls. Hit on app foreground.
-import { kv } from '@vercel/kv'
+import { kv } from '../src/lib/kv.js'
 import { isoDate } from '../src/lib/kv.js'
 
 export const config = { runtime: 'edge' }

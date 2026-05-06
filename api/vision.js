@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { kv } from '@vercel/kv'
+import { kv } from '../src/lib/kv.js'
 import { isoDate, isoMonth } from '../src/lib/kv.js'
 import { buildVisionPrompt } from '../src/lib/prompts.js'
 import { withAIBudget } from '../src/lib/cost.js'

@@ -4,7 +4,7 @@
 // Insurance against KV loss / project switch / accidental wipe. Push
 // subscription is OMITTED (not just redacted) so re-import via
 // /api/health-ingest won't feed webpush a malformed sub.
-import { kv } from '@vercel/kv'
+import { kv } from '../src/lib/kv.js'
 import { isoDate } from '../src/lib/kv.js'
 import { scanAll, mgetChunked } from '../src/lib/kv-helpers.js'
 

@@ -1,7 +1,7 @@
 // Force-regenerate this week's report so the Weekly insight card on
 // History populates without waiting for Sunday's cron. Wipes the cache
 // then calls /api/report?force=1 with the cron secret server-side.
-import { kv } from '@vercel/kv'
+import { kv } from '../../src/lib/kv.js'
 import { isoWeek } from '../../src/lib/kv.js'
 
 export const config = { runtime: 'edge' }

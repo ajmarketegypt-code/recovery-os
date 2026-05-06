@@ -1,5 +1,5 @@
 // api/health-ingest.js
-import { kv } from '@vercel/kv'
+import { kv } from '../src/lib/kv.js'
 import { getHealthData, setHealthData, getHRVBaseline, setHRVBaseline, isoDate } from '../src/lib/kv.js'
 import { appendToBaseline } from '../src/lib/hrv.js'
 import { scoreSleep, scoreMovement, scoreStrength } from '../src/lib/scoring.js'
@@ -77,7 +77,15 @@ export default async function handler(req) {
 
     } else if (type === 'workout' && data) {
       const existing = await getHealthData(date, 'strength') ?? { workouts: [], weekly_count: 0, score: 0, sets: [] }
-      const workouts = [...existing.workouts, data]
+      // Dedup against re-export from HAE (different exportedAt → idempotency hash differs,
+      // so we'd otherwise append the same workout twice). Match on start time + type;
+      // fall back to type+duration+calories if HAE didn't send a start timestamp.
+      const isDup = existing.workouts.some(w =>
+        data.start && w.start
+          ? w.start === data.start && w.type === data.type
+          : w.type === data.type && w.duration_min === data.duration_min && w.calories === data.calories
+      )
+      const workouts = isDup ? existing.workouts : [...existing.workouts, data]
       const settings = await kv.get('settings') ?? { workout_target: 4 }
       const score = scoreStrength({ weekly_workouts: workouts.length, target: settings.workout_target })
       await setHealthData(date, 'strength', { ...existing, workouts, weekly_count: workouts.length, score })

@@ -251,6 +251,15 @@ export default function Settings() {
             onClick={()=>callDev('/api/dev/trigger-cron', 'cron')} />
           <DevButton label="Export data" tone="accent" busy={busy==='export'} onClick={downloadExport} />
           <DevButton label="View errors" busy={busy==='errors'} onClick={viewErrors} />
+          <DevButton label="Health check" busy={busy==='health'} onClick={async () => {
+            setBusy('health'); setDevMsg(null)
+            try {
+              const j = await fetch('/api/health').then(r => r.json())
+              const fails = Object.entries(j.checks || {}).filter(([,v]) => !v).map(([k]) => k)
+              setDevMsg(j.ok ? 'All systems OK ✓' : `Issues: ${fails.join(', ')}`)
+            } catch (e) { setDevMsg('Health check failed: ' + e.message) }
+            finally { setBusy(null); setTimeout(()=>setDevMsg(null), 8000) }
+          }} />
           <DevButton label="Wipe all data" tone="danger" busy={busy==='wipe'}
             onClick={()=>{ if (confirm('Delete all health data? Settings will stay.')) callDev('/api/dev/wipe', 'wipe') }} />
         </div>

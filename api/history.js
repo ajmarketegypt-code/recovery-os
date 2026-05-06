@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv'
+import { kv } from '../src/lib/kv.js'
 import { getHRVBaseline } from '../src/lib/kv.js'
 import { enrichHRV, computeEnergy, lutealFlag } from '../src/lib/enrich.js'
 

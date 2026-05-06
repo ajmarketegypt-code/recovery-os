@@ -6,7 +6,7 @@
 // Idempotency key: prayer:reminded:{date}:{name} with 36-hour TTL.
 // Window (10 min) is intentionally wider than cron interval (5 min) so a
 // single skipped run doesn't drop a reminder; dedup key handles double-fire.
-import { kv } from '@vercel/kv'
+import { kv } from '../../src/lib/kv.js'
 import { isoDate } from '../../src/lib/kv.js'
 import { PRAYERS, getPrayerTimes, prayerLocation } from '../../src/lib/prayers.js'
 

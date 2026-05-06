@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv'
+import { kv } from '../src/lib/kv.js'
 import { isoDate } from '../src/lib/kv.js'
 import { scoreStrength } from '../src/lib/scoring.js'
 export const config = { runtime:'edge' }

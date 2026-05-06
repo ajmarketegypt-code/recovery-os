@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv'
+import { kv } from '../../src/lib/kv.js'
 import { isoDate, getHRVBaseline, getBrief } from '../../src/lib/kv.js'
 import { detectAlerts, SUPPRESS_DAYS_VALUE } from '../../src/lib/alerts.js'
 

@@ -1,7 +1,7 @@
 // Toggle a prayer's completion status for a given date.
 // POST /api/prayer-log { prayer: 'Fajr'|'Dhuhr'|'Asr'|'Maghrib'|'Isha', date? }
 // Idempotent toggle — calling twice un-marks it.
-import { kv } from '@vercel/kv'
+import { kv } from '../src/lib/kv.js'
 import { isoDate } from '../src/lib/kv.js'
 
 export const config = { runtime: 'edge' }
