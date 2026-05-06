@@ -8,27 +8,28 @@ vi.mock('@vercel/kv', () => ({
   },
 }))
 
-import { kv } from '@vercel/kv'
+import { kv as rawKv } from '@vercel/kv'
 import {
   getHealthData, setHealthData,
-  getSettings, setSettings,
-  getHRVBaseline, setHRVBaseline,
-  getBrief, setBrief,
+  getBrief,
   isoWeek, isoMonth, isoDate,
+  KEY_NAMESPACE,
 } from './kv.js'
+
+const NS = KEY_NAMESPACE
 
 beforeEach(() => vi.clearAllMocks())
 
 describe('getHealthData', () => {
   it('returns null when key missing', async () => {
-    kv.get.mockResolvedValue(null)
+    rawKv.get.mockResolvedValue(null)
     const result = await getHealthData('2026-05-01', 'sleep')
     expect(result).toBeNull()
-    expect(kv.get).toHaveBeenCalledWith('health:2026-05-01:sleep')
+    expect(rawKv.get).toHaveBeenCalledWith(`${NS}:health:2026-05-01:sleep`)
   })
 
   it('returns parsed object when key exists', async () => {
-    kv.get.mockResolvedValue({ score: 80 })
+    rawKv.get.mockResolvedValue({ score: 80 })
     const result = await getHealthData('2026-05-01', 'sleep')
     expect(result).toEqual({ score: 80 })
   })
@@ -36,10 +37,10 @@ describe('getHealthData', () => {
 
 describe('setHealthData', () => {
   it('writes with 90-day TTL', async () => {
-    kv.set.mockResolvedValue('OK')
+    rawKv.set.mockResolvedValue('OK')
     await setHealthData('2026-05-01', 'sleep', { score: 80 })
-    expect(kv.set).toHaveBeenCalledWith(
-      'health:2026-05-01:sleep',
+    expect(rawKv.set).toHaveBeenCalledWith(
+      `${NS}:health:2026-05-01:sleep`,
       { score: 80 },
       { ex: 60 * 60 * 24 * 90 }
     )
@@ -48,9 +49,9 @@ describe('setHealthData', () => {
 
 describe('getBrief', () => {
   it('uses brief: key prefix', async () => {
-    kv.get.mockResolvedValue(null)
+    rawKv.get.mockResolvedValue(null)
     await getBrief('2026-05-01')
-    expect(kv.get).toHaveBeenCalledWith('brief:2026-05-01')
+    expect(rawKv.get).toHaveBeenCalledWith(`${NS}:brief:2026-05-01`)
   })
 })
 

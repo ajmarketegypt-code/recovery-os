@@ -30,11 +30,12 @@ export default async function handler(req) {
 
   // === Critical alert checks ===
   const dates = Array.from({ length: HISTORY_DAYS }, (_, i) => dateNDaysAgo(HISTORY_DAYS - 1 - i))
-  const [hrvHistory, sleepHistory, baseline, briefYesterday] = await Promise.all([
+  const [hrvHistory, sleepHistory, baseline, briefYesterday, lastIngest] = await Promise.all([
     Promise.all(dates.map(d => kv.get(`health:${d}:hrv`))),
     Promise.all(dates.map(d => kv.get(`health:${d}:sleep`))),
     getHRVBaseline(),
     getBrief(dateNDaysAgo(1)),
+    kv.get('debug:last-ingest'),
   ])
 
   // Collect which alert types have been fired within suppression window
@@ -47,7 +48,7 @@ export default async function handler(req) {
 
   const alerts = detectAlerts({
     hrvHistory, sleepHistory, baseline,
-    briefToday: brief, briefYesterday,
+    briefToday: brief, briefYesterday, lastIngest,
   }, firedRecently)
 
   // Fire each alert as its own push, then mark fired for today

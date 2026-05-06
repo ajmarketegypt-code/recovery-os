@@ -27,16 +27,22 @@ export default async function handler(req) {
   let body
   try { body = JSON.parse(rawBody) } catch { return new Response('Bad JSON', { status: 400 }) }
 
-  // DEBUG: stash last raw payload + a tiny summary for inspection
+  // DEBUG: stash a structural summary (NO raw values) for inspection.
+  // Previously dumped 4KB of raw body — that's PHI (HRV ms, sleep stages,
+  // weight kg) sitting in KV with the same auth as everything else.
+  // Keep just shapes + counts so we can still answer "is HAE talking?"
+  // and "which metrics are flowing?" without leaking biometrics.
   const wasHAE = isHAEFormat(body)
+  const metricsRaw = wasHAE ? (body.data?.metrics ?? []) : (body.metrics ?? [])
   await kv.set('debug:last-ingest', {
     received_at: new Date().toISOString(),
     bytes: rawBody.length,
     detected_format: wasHAE ? 'HAE' : 'native',
-    sample_body: rawBody.slice(0, 4000),  // first 4KB
-    metric_names: wasHAE
-      ? (body.data?.metrics ?? []).map(m => m.name).slice(0, 50)
-      : (body.metrics ?? []).map(m => m.type).slice(0, 50),
+    metric_names: metricsRaw.map(m => wasHAE ? m.name : m.type).slice(0, 50),
+    metric_counts: metricsRaw.map(m => ({
+      name: wasHAE ? m.name : m.type,
+      points: (wasHAE ? m.data?.length : (m.value != null ? 1 : (m.data ? 1 : 0))) ?? 0,
+    })).slice(0, 50),
     workout_count: body.data?.workouts?.length ?? 0,
   }, { ex: 86400 })
 

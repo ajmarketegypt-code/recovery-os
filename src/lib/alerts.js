@@ -64,22 +64,58 @@ export function rhrElevatedAlert(hrvHistory) {
 // 5) Watch hasn't been worn — last HRV reading is >24h old but data
 // existed in the previous week (so we don't trip during the cold-start
 // "haven't connected the Watch yet" period).
+//
+// Behavior tiers:
+//   gap 1-7 days  → friendly "wear it to sleep" reminder
+//   gap 8-14 days → escalated "still no data" — louder copy, distinct type
+//                   (so suppression doesn't merge them)
+//   gap > 14 days → fall through to ingestStaleAlert which monitors the
+//                   ingest pipeline directly via debug:last-ingest
 export function wearWatchAlert(hrvHistory) {
   if (!hrvHistory?.length) return null
-  // Find most recent day that has HRV data
   let lastIdx = -1
   for (let i = hrvHistory.length - 1; i >= 0; i--) {
     if (hrvHistory[i]?.hrv_ms != null) { lastIdx = i; break }
   }
-  if (lastIdx === -1) return null  // never had data — not the right alert
-  // Days between last reading and "today" (last array slot)
+  if (lastIdx === -1) return null
   const gap = (hrvHistory.length - 1) - lastIdx
-  if (gap < 1) return null  // had HRV today, all good
-  if (gap > 7) return null  // too old — different problem (HAE broken, on vacation, etc.)
+  if (gap < 1) return null
+  if (gap > 14) return null
+
+  if (gap <= 7) {
+    return {
+      type: 'wear_watch',
+      title: 'Watch not synced',
+      body: `No HRV reading for ${gap} day${gap === 1 ? '' : 's'}. Wear it to sleep so recovery scoring stays accurate.`,
+      url: '/',
+    }
+  }
   return {
-    type: 'wear_watch',
-    title: 'Watch not synced',
-    body: `No HRV reading for ${gap} day${gap === 1 ? '' : 's'}. Wear it to sleep so recovery scoring stays accurate.`,
+    type: 'wear_watch_long',
+    title: 'Watch off for over a week',
+    body: `${gap} days without HRV. Recovery scoring is stale — open Health Auto Export and confirm it's still running.`,
+    url: '/',
+  }
+}
+
+// 6) HAE pipeline silently broken — the ingest endpoint hasn't received
+// ANY data in over 24h, regardless of which metrics. Catches cases the
+// HRV-only wear_watch detector misses (e.g. Watch stopped uploading
+// non-HRV pillars, HAE app crashed, iOS revoked background permission).
+//
+// Reads `debug:last-ingest` (already written on every ingest for ~24h).
+// Returns null if KV has no ingest record yet (cold start).
+export function ingestStaleAlert(lastIngest) {
+  if (!lastIngest?.received_at) return null
+  const ageH = (Date.now() - new Date(lastIngest.received_at).getTime()) / 3_600_000
+  if (ageH < 24) return null
+  const days = Math.floor(ageH / 24)
+  return {
+    type: 'ingest_stale',
+    title: 'Health data not flowing',
+    body: days >= 1
+      ? `No ingest from Apple Watch in ${days} day${days === 1 ? '' : 's'}. Open Health Auto Export and check it's still scheduled.`
+      : `No ingest in ${Math.round(ageH)}h. Check Health Auto Export.`,
     url: '/',
   }
 }
@@ -100,13 +136,14 @@ export function briefFlipAlert(briefToday, briefYesterday) {
 
 // Combine all detectors. Returns the alerts that should fire after suppression.
 // `firedRecently` is a Set of alert type names fired within SUPPRESS_DAYS.
-export function detectAlerts({ hrvHistory, sleepHistory, baseline, briefToday, briefYesterday }, firedRecently = new Set()) {
+export function detectAlerts({ hrvHistory, sleepHistory, baseline, briefToday, briefYesterday, lastIngest }, firedRecently = new Set()) {
   const candidates = [
     hrvDropAlert(hrvHistory, baseline),
     sleepDebtAlert(sleepHistory),
     rhrElevatedAlert(hrvHistory),
     briefFlipAlert(briefToday, briefYesterday),
     wearWatchAlert(hrvHistory),
+    ingestStaleAlert(lastIngest),
   ].filter(Boolean)
   return candidates.filter(a => !firedRecently.has(a.type))
 }

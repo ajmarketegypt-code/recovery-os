@@ -35,9 +35,14 @@ export default class ErrorBoundary extends Component {
       msg.includes('failed to fetch dynamically imported module') ||
       msg.includes('loading chunk') ||
       msg.includes("can't find variable") && msg.includes('chunk')
-    if (isChunkError && !sessionStorage.getItem('chunk-reload-attempted')) {
-      sessionStorage.setItem('chunk-reload-attempted', '1')
-      window.location.reload()
+    // Re-attempt chunk reload at most once per 5 min (was once per session,
+    // which left iOS PWAs hard-stuck for days because their session is sticky)
+    if (isChunkError) {
+      const last = parseInt(sessionStorage.getItem('chunk-reload-at') || '0', 10)
+      if (Date.now() - last > 5 * 60_000) {
+        sessionStorage.setItem('chunk-reload-at', String(Date.now()))
+        window.location.reload()
+      }
     }
   }
 

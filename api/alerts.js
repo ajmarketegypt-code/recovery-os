@@ -9,7 +9,7 @@
 // POST /api/alerts { type, action: 'dismiss' } → removes one
 import { kv } from '../src/lib/kv.js'
 import { isoDate } from '../src/lib/kv.js'
-import { wearWatchAlert } from '../src/lib/alerts.js'
+import { wearWatchAlert, ingestStaleAlert } from '../src/lib/alerts.js'
 
 export const config = { runtime: 'edge' }
 const KEY = 'alerts:active'
@@ -25,19 +25,29 @@ async function recentHRV(days = 8) {
   return kv.mget(...dates.map(d => `health:${d}:hrv`))
 }
 
-// Returns the in-KV alert list with a live wear_watch alert merged in
-// (or removed if HRV came back). Doesn't persist — just affects the read.
+// Returns the in-KV alert list with live wear_watch / ingest_stale merged
+// in (or removed if conditions cleared). Doesn't persist — just affects
+// the read. Same-day dismissal tombstone suppresses each independently.
 async function liveAlerts() {
   const stored = (await kv.get(KEY)) ?? []
-  const hrv = await recentHRV()
-  const wear = wearWatchAlert(hrv)
+  const today = isoDate()
 
-  const withoutStaleWear = stored.filter(a => a.type !== 'wear_watch')
-  if (!wear) return withoutStaleWear  // condition cleared
-  // If user already dismissed today, suppress (dismiss writes a tombstone)
-  const dismissedToday = await kv.get(`alert:dismissed:${isoDate()}:wear_watch`)
-  if (dismissedToday) return withoutStaleWear
-  return [{ ...wear, fired_at: new Date().toISOString() }, ...withoutStaleWear]
+  const [hrv, lastIngest, wearTomb, ingestTomb] = await Promise.all([
+    recentHRV(),
+    kv.get('debug:last-ingest'),
+    kv.get(`alert:dismissed:${today}:wear_watch`),
+    kv.get(`alert:dismissed:${today}:ingest_stale`),
+  ])
+
+  const synth = []
+  const wear = wearWatchAlert(hrv)
+  if (wear && !wearTomb) synth.push({ ...wear, fired_at: new Date().toISOString() })
+  const ingest = ingestStaleAlert(lastIngest)
+  if (ingest && !ingestTomb) synth.push({ ...ingest, fired_at: new Date().toISOString() })
+
+  const synthTypes = new Set(['wear_watch', 'wear_watch_long', 'ingest_stale'])
+  const withoutSynth = stored.filter(a => !synthTypes.has(a.type))
+  return [...synth, ...withoutSynth]
 }
 
 export default async function handler(req) {
@@ -55,8 +65,8 @@ export default async function handler(req) {
     if (action === 'dismiss' && type) {
       // Persist a same-day tombstone for synthesized alerts so they don't
       // pop right back. 36h TTL covers TZ weirdness across midnight.
-      if (type === 'wear_watch') {
-        await kv.set(`alert:dismissed:${isoDate()}:wear_watch`, 1, { ex: 60 * 60 * 36 })
+      if (type === 'wear_watch' || type === 'wear_watch_long' || type === 'ingest_stale') {
+        await kv.set(`alert:dismissed:${isoDate()}:${type}`, 1, { ex: 60 * 60 * 36 })
       }
       const list = (await kv.get(KEY)) ?? []
       const next = list.filter(a => a.type !== type)
