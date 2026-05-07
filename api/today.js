@@ -46,7 +46,7 @@ export default async function handler(req) {
     }
   }
 
-  return new Response(JSON.stringify({ date, ...raw }), {
+  return new Response(JSON.stringify({ date, ...raw, _build: 'v15-namespace' }), {
     headers: { 'content-type': 'application/json' },
   })
 }
